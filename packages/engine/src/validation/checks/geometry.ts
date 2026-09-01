@@ -51,7 +51,12 @@ export function checkGeometry(ctx: ValidationContext): CheckOutput {
     const changed =
       !approxEqual(effective.frame.width, node.frame.width, 0.5) ||
       !approxEqual(effective.frame.height, node.frame.height, 0.5);
-    if (changed && !explained.has(node.id) && effective.quality === 'inferred') {
+    // Under a uniform scale, one document-level transform explains every node,
+    // provided the node actually moved by that same factor.
+    const explainedByDocumentScale =
+      ctx.adaptation.plan.strategy === 'uniform-scale' &&
+      approxEqual(adapted.scale, ctx.adaptation.plan.scale, 0.001);
+    if (changed && !explained.has(node.id) && !explainedByDocumentScale && effective.quality === 'inferred') {
       findings.push(
         finding({
           check: GEOMETRY_CHECK,

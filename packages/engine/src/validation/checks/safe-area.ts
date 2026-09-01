@@ -139,13 +139,29 @@ export function checkCutoutCollision(ctx: ValidationContext): CheckOutput {
     const overlap = intersection(effective.frame, cutoutRect);
     if (!overlap) continue;
 
-    const carriesContent = node.type === 'text' || node.type === 'vector' || node.interaction?.role !== undefined;
+    // A whole-page bitmap is full-bleed by nature: the cutout sits over the
+    // artwork exactly as it would on the source device. That is worth saying,
+    // but it is not a defect the adaptation introduced.
+    const isRasterArtwork =
+      ctx.design.sourceKind === 'raster' &&
+      node.type === 'image' &&
+      effective.frame.width >= targetViewport.width - 1;
+    const carriesContent =
+      !isRasterArtwork && (node.type === 'text' || node.type === 'vector' || node.interaction?.role !== undefined);
+    const coverage = round(
+      ((overlap.width * overlap.height) / (effective.frame.width * effective.frame.height || 1)) * 100,
+      1,
+    );
     findings.push(
       finding({
         check: 'cutout-collision',
-        severity: carriesContent ? 'critical' : 'warning',
-        title: `"${node.name}" sits under the ${cutout.kind.replace('-', ' ')}`,
-        detail: `${round((overlap.width * overlap.height) / (effective.frame.width * effective.frame.height || 1) * 100, 1)}% of this element falls inside the ${cutout.width}x${cutout.height}px ${cutout.kind.replace('-', ' ')} at the top of the screen. ${carriesContent ? 'It carries content, so part of it would be permanently hidden.' : 'It is decorative, so this may be acceptable.'}`,
+        severity: isRasterArtwork ? 'info' : carriesContent ? 'critical' : 'warning',
+        title: isRasterArtwork
+          ? `Artwork runs under the ${cutout.kind.replace('-', ' ')}`
+          : `"${node.name}" sits under the ${cutout.kind.replace('-', ' ')}`,
+        detail: isRasterArtwork
+          ? `The ${cutout.width}x${cutout.height}px ${cutout.kind.replace('-', ' ')} sits over the top of the full-bleed artwork, ${px(cutout.top)} from the top edge. Check that no title, control or status content is drawn in that band. The bitmap itself was not modified.`
+          : `${coverage}% of this element falls inside the ${cutout.width}x${cutout.height}px ${cutout.kind.replace('-', ' ')} at the top of the screen. ${carriesContent ? 'It carries content, so part of it would be permanently hidden.' : 'It is decorative, so this may be acceptable.'}`,
         nodeId: node.id,
         nodeName: node.name,
         region: overlap,

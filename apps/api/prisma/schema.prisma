@@ -1,0 +1,164 @@
+// PostgreSQL schema for the Device Adaptation Engine.
+//
+// The JSON columns hold artefacts whose canonical shape lives in the shared Zod
+// schemas (@dae/shared). Postgres enforces identity, relationships and
+// immutability; Zod enforces structure on read and write. Splitting the Design
+// IR across relational tables would duplicate that contract in a second place
+// and let the two drift.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Project {
+  id        String   @id
+  name      String
+  createdAt DateTime
+  updatedAt DateTime
+
+  sources     Source[]
+  adaptations Adaptation[]
+  validations Validation[]
+  exports     Export[]
+
+  @@map("projects")
+}
+
+/// Write-once. There is deliberately no update path: re-importing the same
+/// artwork creates a new Source row, so the original is never overwritten.
+model Source {
+  id            String   @id
+  projectId     String
+  kind          String
+  name          String
+  mimeType      String
+  byteSize      Int
+  /// SHA-256 of the original bytes.
+  hash          String
+  assetId       String
+  width         Float
+  height        Float
+  pixelWidth    Int?
+  pixelHeight   Int?
+  dpi           Float?
+  exportScale   Float
+  figmaFileKey  String?
+  figmaNodeId   String?
+  importedAt    DateTime
+  parserVersion String
+  /// Full SourceDocument, validated against SourceDocumentSchema on read.
+  document      Json
+
+  project Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  designs Design[]
+
+  @@unique([projectId, hash])
+  @@index([projectId])
+  @@map("sources")
+}
+
+model Design {
+  id            String   @id
+  sourceId      String
+  sourceHash    String
+  sourceKind    String
+  irVersion     String
+  parserVersion String
+  createdAt     DateTime
+  /// Full DesignDocument (the Design IR).
+  document      Json
+
+  source      Source       @relation(fields: [sourceId], references: [id], onDelete: Cascade)
+  adaptations Adaptation[]
+
+  @@index([sourceId])
+  @@map("designs")
+}
+
+model Adaptation {
+  id                   String   @id
+  /// sourceHash + deviceId + catalogVersion + engineVersion + options.
+  cacheKey             String
+  projectId            String
+  designId             String
+  sourceId             String
+  screenId             String
+  deviceId             String
+  deviceCatalogVersion String
+  engineVersion        String
+  strategy             String
+  scale                Float
+  preservationScore    Float
+  revision             Int
+  createdAt            DateTime
+  /// Full AdaptationResult: the plan plus the adapted node geometry.
+  result               Json
+
+  project     Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  design      Design       @relation(fields: [designId], references: [id], onDelete: Cascade)
+  validations Validation[]
+  exports     Export[]
+
+  @@unique([cacheKey])
+  @@index([projectId, deviceId])
+  @@map("adaptations")
+}
+
+model Validation {
+  id                String   @id
+  projectId         String
+  adaptationId      String
+  sourceHash        String
+  deviceId          String
+  status            String
+  criticalCount     Int
+  warningCount      Int
+  preservationScore Float
+  confidence        Float
+  engineVersion     String
+  createdAt         DateTime
+  /// Full ValidationReport, including both mandatory passes.
+  report            Json
+
+  project    Project    @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  adaptation Adaptation @relation(fields: [adaptationId], references: [id], onDelete: Cascade)
+
+  @@index([adaptationId])
+  @@map("validations")
+}
+
+model Export {
+  id            String   @id
+  projectId     String
+  adaptationId  String
+  kind          String
+  format        String
+  assetId       String
+  byteSize      Int
+  createdAt     DateTime
+  /// Source id, source hash, plan id, device and engine versions.
+  provenance    Json
+
+  project    Project    @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  adaptation Adaptation @relation(fields: [adaptationId], references: [id], onDelete: Cascade)
+
+  @@index([projectId])
+  @@map("exports")
+}
+
+/// One row per ingested catalog version, so a render can always be replayed
+/// against the exact device data it was produced with.
+model DeviceCatalogVersion {
+  catalogVersion String   @id
+  schemaVersion  String
+  generatedAt    DateTime
+  deviceCount    Int
+  catalog        Json
+
+  @@map("device_catalog_versions")
+}
