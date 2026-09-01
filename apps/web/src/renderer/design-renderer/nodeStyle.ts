@@ -72,6 +72,16 @@ export function nodeStyle(
   node: DesignNode,
   adapted: AdaptedNode,
   assetUrl: (assetId: string) => string | undefined,
+  /**
+   * Origin of the adapted parent.
+   *
+   * The IR stores every frame in document coordinates, because adaptation and
+   * validation both reason about absolute geometry. CSS absolute positioning is
+   * relative to the nearest positioned ancestor, so a nested node must have its
+   * parent's origin subtracted - otherwise a card's title is placed at its
+   * document offset *inside* the card and lands far below it.
+   */
+  parentOrigin: { x: number; y: number } = { x: 0, y: 0 },
 ): CSSProperties {
   const background = backgroundFrom(node.fills, assetUrl);
   const stroke = strokeCss(node.strokes);
@@ -79,8 +89,8 @@ export function nodeStyle(
 
   const style: CSSProperties = {
     position: 'absolute',
-    left: adapted.frame.x,
-    top: adapted.frame.y,
+    left: adapted.frame.x - parentOrigin.x,
+    top: adapted.frame.y - parentOrigin.y,
     width: adapted.frame.width,
     height: adapted.frame.height,
     opacity: node.opacity,

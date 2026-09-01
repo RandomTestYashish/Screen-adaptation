@@ -1,0 +1,76 @@
+.layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 26;
+  font: 500 9px/1.2 var(--font-mono);
+}
+
+.viewportBounds {
+  position: absolute;
+  inset: 0;
+  border: 1px solid rgba(219, 39, 119, 0.9);
+}
+
+.contentBounds {
+  position: absolute;
+  border-left: 1px dashed rgba(37, 99, 235, 0.85);
+  border-right: 1px dashed rgba(37, 99, 235, 0.85);
+}
+
+.insetBand {
+  position: absolute;
+  left: 0;
+  right: 0;
+  background: repeating-linear-gradient(
+    -45deg,
+    rgba(37, 99, 235, 0.16),
+    rgba(37, 99, 235, 0.16) 4px,
+    transparent 4px,
+    transparent 8px
+  );
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.insetLabel,
+.marginLabel {
+  background: rgba(255, 255, 255, 0.92);
+  color: #1d4ed8;
+  padding: 1px 4px;
+  border-radius: 2px;
+  white-space: nowrap;
+}
+
+.safeRect {
+  position: absolute;
+  border: 1px dashed rgba(37, 99, 235, 0.8);
+}
+
+.marginGuide {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  background: rgba(16, 185, 129, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.marginLabel {
+  color: #047857;
+}
+
+.readout {
+  position: absolute;
+  left: 4px;
+  bottom: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  background: rgba(17, 17, 20, 0.82);
+  color: #ffffff;
+  padding: 4px 6px;
+  border-radius: 3px;
+}

@@ -621,8 +621,22 @@ function applySafeAreaAnchors(root: DesignNode, ctx: Ctx): void {
     if (adapted) {
       if (node.safeAreaAnchor === 'top-inset' && ctx.topDelta > 0) {
         const before = { y: adapted.frame.y, height: adapted.frame.height };
+        const originalBottom = adapted.frame.y + adapted.frame.height;
         adapted.frame = { ...adapted.frame, height: round(adapted.frame.height + ctx.topDelta, 2) };
         shiftDescendants(node, byId, ctx.topDelta);
+
+        /*
+         * A bar that sits in the document flow pushes what follows it.
+         *
+         * Growing it in place would slide it over the content beneath and
+         * create an overlap the source never had - which would be a change to
+         * the design, not an adaptation of it. A sticky or fixed bar floats
+         * above the page instead, so content is meant to pass under it and
+         * must not move.
+         */
+        if (node.position === 'flow') {
+          shiftFollowing(root, byId, originalBottom, ctx.topDelta, node.id);
+        }
         record(
           ctx,
           'safe-area-inset',
@@ -651,6 +665,35 @@ function applySafeAreaAnchors(root: DesignNode, ctx: Ctx): void {
     for (const child of childrenOf(node)) visit(child);
   };
   visit(root);
+}
+
+/**
+ * Move everything that starts at or below `fromY` down by `dy`, so an element
+ * that grew does not overlap what came after it.
+ */
+function shiftFollowing(
+  root: DesignNode,
+  byId: Map<string, AdaptedNode>,
+  fromY: number,
+  dy: number,
+  excludeId: string,
+): void {
+  const moved = new Set<string>();
+  const visit = (node: DesignNode, insideMoved: boolean) => {
+    let moving = insideMoved;
+    if (!insideMoved && node.id !== excludeId) {
+      const adapted = byId.get(node.id);
+      // Viewport-anchored elements keep their own position; they are pinned to
+      // the screen, not carried along by the document.
+      if (adapted && node.position === 'flow' && adapted.frame.y >= fromY - 0.5) {
+        adapted.frame = { ...adapted.frame, y: round(adapted.frame.y + dy, 2) };
+        moved.add(node.id);
+        moving = true;
+      }
+    }
+    for (const child of childrenOf(node)) visit(child, moving);
+  };
+  for (const child of childrenOf(root)) visit(child, false);
 }
 
 function shiftDescendants(node: DesignNode, byId: Map<string, AdaptedNode>, dy: number): void {

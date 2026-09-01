@@ -232,3 +232,226 @@
   font-size: 12px;
   flex: 0 0 auto;
 }
+
+/* --- Simplified top bar controls ---------------------------------------- */
+
+.stepButton {
+  width: 20px;
+  height: 20px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  font-size: 12px;
+  line-height: 1;
+  padding: 0;
+  color: var(--text-muted);
+}
+
+.stepButton:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.zoomValue {
+  min-width: 40px;
+  border: none;
+  background: none;
+  padding: 0;
+  font: 400 11px/1 var(--font-mono);
+  color: var(--text-muted);
+  text-align: right;
+}
+
+.zoomValue:hover {
+  color: var(--accent);
+}
+
+.modeGroup {
+  display: flex;
+  gap: 4px;
+  padding-left: 12px;
+  border-left: 1px solid var(--border);
+}
+
+/* Modes read as one quiet family; only the active one gains weight. */
+.modeToggle,
+.modeToggleActive {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 9px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  font-size: 11.5px;
+  color: var(--text-muted);
+  cursor: pointer;
+  user-select: none;
+}
+
+.modeToggle:hover {
+  border-color: var(--border-strong);
+}
+
+.modeToggleActive {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-weight: 500;
+}
+
+.modeToggle input,
+.modeToggleActive input {
+  position: absolute;
+  opacity: 0;
+  width: 1px;
+  height: 1px;
+}
+
+.modeToggle:focus-within,
+.modeToggleActive:focus-within {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+/* --- Sidebar ------------------------------------------------------------- */
+
+/* The reveal control persists when the sidebar is closed, so it can always be
+   brought back (spec section 21). */
+.sidebarReveal {
+  flex: 0 0 auto;
+  width: 18px;
+  border: none;
+  border-right: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text-faint);
+  font-size: 13px;
+  line-height: 1;
+  padding: 0;
+}
+
+.sidebarReveal:hover {
+  color: var(--accent);
+  background: var(--bg-subtle);
+}
+
+/* --- Pane identity ------------------------------------------------------- */
+
+.paneHeader {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-bottom: 8px;
+  padding: 0 2px;
+}
+
+/* Neutral by default: the badge only gains an accent once the pane is chosen,
+   so two devices being compared start equal (spec sections 24, 25, 47). */
+.paneBadge,
+.paneBadgeActive {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 17px;
+  height: 17px;
+  border-radius: 4px;
+  border: 1px solid var(--border-strong);
+  background: var(--surface);
+  font: 600 10px/1 var(--font-mono);
+  color: var(--text-muted);
+}
+
+.paneBadgeActive {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: #ffffff;
+}
+
+.paneDevice {
+  font-size: 11.5px;
+  color: var(--text-muted);
+}
+
+/* --- Render progress ----------------------------------------------------- */
+
+.progressPane {
+  min-width: 250px;
+  min-height: 360px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 20px 18px;
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+.progressBadge {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 17px;
+  height: 17px;
+  border-radius: 4px;
+  border: 1px solid var(--border-strong);
+  font: 600 10px/1 var(--font-mono);
+  color: var(--text-muted);
+}
+
+.progressList {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.progressStep {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.progressMark {
+  font-size: 10px;
+  line-height: 1.5;
+  color: var(--text-faint);
+  width: 10px;
+  flex: 0 0 auto;
+}
+
+.progressStep[data-state='done'] .progressMark {
+  color: var(--good);
+}
+
+.progressStep[data-state='active'] .progressMark {
+  color: var(--accent);
+}
+
+.progressText {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.progressLabel {
+  font-size: 12px;
+  color: var(--text-faint);
+}
+
+.progressStep[data-state='done'] .progressLabel,
+.progressStep[data-state='active'] .progressLabel {
+  color: var(--text);
+}
+
+.progressStep[data-state='active'] .progressLabel {
+  font-weight: 500;
+}
+
+.progressDetail {
+  font-size: 10.5px;
+  line-height: 1.5;
+  color: var(--text-faint);
+}

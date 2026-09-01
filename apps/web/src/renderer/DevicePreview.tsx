@@ -9,10 +9,11 @@ import {
   type Orientation,
   type ValidationReport,
 } from '@dae/shared';
-import type { ChromeToggles } from '../state/workspace.js';
+import type { ChromeToggles, OverlayToggles } from '../state/workspace.js';
 import { DeviceShell } from './device-shell/DeviceShell.js';
 import { PlatformChrome } from './platform-chrome/PlatformChrome.js';
 import { SafeAreaOverlay } from './overlays/SafeAreaOverlay.js';
+import { DeviceOverlay } from './overlays/DeviceOverlay.js';
 import { InspectionOverlay } from './overlays/InspectionOverlay.js';
 import { DesignRenderer, FixedLayer } from './design-renderer/DesignRenderer.js';
 import { assetUrl as absoluteAssetUrl } from '../lib/api.js';
@@ -38,7 +39,9 @@ interface Props {
   measureFromNodeId?: string;
   validation?: ValidationReport;
   scrollTop: number;
-  onScroll(scrollTop: number): void;
+  /** Transparent measurement overlay; undefined when it is off. */
+  overlay?: OverlayToggles;
+  onScroll(scrollTop: number, scrollProgress: number): void;
   onSelect(nodeId: string): void;
   /** Fires once the DOM has settled, with real measurements from the preview. */
   onMeasured(evidence: MeasuredEvidence): void;
@@ -72,6 +75,7 @@ export function DevicePreview({
   measureFromNodeId,
   validation,
   scrollTop,
+  overlay,
   onScroll,
   onSelect,
   onMeasured,
@@ -105,7 +109,9 @@ export function DevicePreview({
     const scroller = scrollerRef.current;
     if (!scroller) return;
     setWindowTop(scroller.scrollTop);
-    onScroll(scroller.scrollTop);
+    const extent = scroller.scrollHeight - scroller.clientHeight;
+    // Progress, not pixels: linked panes have different document heights.
+    onScroll(scroller.scrollTop, extent > 0 ? scroller.scrollTop / extent : 0);
   }, [onScroll]);
 
   // Report real measurements so validation can upgrade its predictions from
@@ -212,6 +218,15 @@ export function DevicePreview({
               validation={validation}
               showFindings={chrome.inspectionOverlays}
               scrollTop={windowTop}
+            />
+          )}
+
+          {overlay && (
+            <DeviceOverlay
+              device={device}
+              orientation={orientation}
+              adaptation={adaptation}
+              overlay={overlay}
             />
           )}
 

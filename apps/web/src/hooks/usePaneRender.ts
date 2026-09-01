@@ -38,16 +38,17 @@ export function usePaneRender(pane: PreviewPane) {
     let cancelled = false;
 
     void (async () => {
-      updatePane(pane.id, { status: 'loading', error: undefined, validation: undefined });
+      updatePane(pane.id, { status: 'loading', stage: 'analysing', error: undefined, validation: undefined });
       setMeasured(undefined);
       try {
+        updatePane(pane.id, { stage: 'adapting' });
         const render = await api.render({
           designDocumentId: design.id,
           deviceId: pane.deviceId,
           options: { orientation: pane.orientation, keyboardVisible: pane.chrome.keyboard },
         });
         if (cancelled) return;
-        updatePane(pane.id, { render, status: 'ready' });
+        updatePane(pane.id, { render, status: 'ready', stage: 'rendering' });
       } catch (cause) {
         if (cancelled) return;
         updatePane(pane.id, {
@@ -81,6 +82,7 @@ export function usePaneRender(pane: PreviewPane) {
       // request for the same plan.
       validatedFor.current = key;
       setValidating(true);
+      updatePane(pane.id, { stage: 'validating' });
 
       const evidence: RenderEvidence | undefined = measured
         ? {
@@ -110,7 +112,10 @@ export function usePaneRender(pane: PreviewPane) {
           validatedFor.current = undefined;
           updatePane(pane.id, { error: describeError(cause) });
         })
-        .finally(() => setValidating(false));
+        .finally(() => {
+          setValidating(false);
+          updatePane(pane.id, { stage: undefined });
+        });
     };
 
     if (measured) start();

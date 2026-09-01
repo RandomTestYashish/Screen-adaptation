@@ -27,6 +27,26 @@ export interface ChromeToggles {
   inspectionOverlays: boolean;
 }
 
+export interface OverlayToggles {
+  /** Viewport bounds and content bounds. */
+  bounds: boolean;
+  /** Safe-area bands with their measurements. */
+  safeArea: boolean;
+  /** Horizontal margin guides and a spacing ruler. */
+  rulers: boolean;
+  /** Device geometry read-out pinned to the frame. */
+  geometry: boolean;
+  opacity: number;
+}
+
+export const DEFAULT_OVERLAY: OverlayToggles = {
+  bounds: true,
+  safeArea: true,
+  rulers: true,
+  geometry: true,
+  opacity: 0.85,
+};
+
 export const DEFAULT_CHROME: ChromeToggles = {
   deviceShell: true,
   statusBar: true,
@@ -48,8 +68,12 @@ export interface PreviewPane {
   render?: RenderResponseT;
   validation?: ValidationReport;
   status: 'idle' | 'loading' | 'ready' | 'error';
+  /** Which stage of the pipeline is running, for the progress list. */
+  stage?: 'analysing' | 'adapting' | 'rendering' | 'validating';
   error?: string;
   scrollTop: number;
+  /** 0..1 position through the scrollable extent, for linked scrolling. */
+  scrollProgress: number;
 }
 
 interface WorkspaceState {
@@ -58,12 +82,28 @@ interface WorkspaceState {
   design?: DesignDocument;
   sourceAssetUrl?: string;
   panes: PreviewPane[];
-  /** Pane whose device picker / controls the right panel is editing. */
+  /**
+   * The pane the right panel is editing.
+   *
+   * Undefined is the *neutral* state, and it is the default in compare mode:
+   * two devices being compared are equal until one is chosen, and clicking the
+   * empty canvas returns them to equal (spec sections 24 and 47).
+   */
   activePaneId?: string;
   /** Pane the device explorer is currently choosing a device for, if any. */
   pickingForPaneId?: string;
   syncScroll: boolean;
   devMode: boolean;
+  /** Reconstruction confidence and reasoning, distinct from Dev Mode. */
+  aiMode: boolean;
+  /** Transparent viewport / safe-area / ruler overlay. Off by default. */
+  overlayMode: boolean;
+  overlay: OverlayToggles;
+  /** Editor chrome hidden for presenting. */
+  presentMode: boolean;
+  sidebarOpen: boolean;
+  /** Design system measured from the source, when it was reconstructed. */
+  dna?: unknown;
   selectedNodeId?: string;
   /** Node used as the second endpoint when measuring a distance. */
   measureFromNodeId?: string;
@@ -74,7 +114,7 @@ interface WorkspaceState {
   recents: string[];
 
   setProject(project: Project): void;
-  setSource(input: { source: SourceDocument; design: DesignDocument }): void;
+  setSource(input: { source: SourceDocument; design: DesignDocument; dna?: unknown }): void;
   reset(): void;
 
   addPane(deviceId: string): string;
@@ -83,12 +123,19 @@ interface WorkspaceState {
   updatePane(id: string, patch: Partial<PreviewPane>): void;
   setChrome(id: string, patch: Partial<ChromeToggles>): void;
   setAllChrome(patch: Partial<ChromeToggles>): void;
-  setActivePane(id: string): void;
+  setActivePane(id: string | undefined): void;
   setPickingFor(id: string | undefined): void;
-  setScroll(id: string, scrollTop: number): void;
+  setScroll(id: string, scrollTop: number, scrollProgress: number): void;
 
   setSyncScroll(value: boolean): void;
   setDevMode(value: boolean): void;
+  setAiMode(value: boolean): void;
+  setOverlayMode(value: boolean): void;
+  setOverlay(patch: Partial<OverlayToggles>): void;
+  setPresentMode(value: boolean): void;
+  setSidebarOpen(value: boolean): void;
+  /** Return every pane to equal weight. */
+  clearActivePane(): void;
   selectNode(nodeId: string | undefined): void;
   setMeasureFrom(nodeId: string | undefined): void;
   setInspectorOpen(value: boolean): void;
@@ -124,8 +171,13 @@ function writeList(key: string, value: string[]): void {
 
 export const useWorkspace = create<WorkspaceState>((set, get) => ({
   panes: [],
-  syncScroll: true,
+  syncScroll: false,
   devMode: false,
+  aiMode: false,
+  overlayMode: false,
+  overlay: { ...DEFAULT_OVERLAY },
+  presentMode: false,
+  sidebarOpen: true,
   inspectorOpen: false,
   validationExpanded: false,
   zoom: 0.8,
@@ -134,13 +186,14 @@ export const useWorkspace = create<WorkspaceState>((set, get) => ({
 
   setProject: (project) => set({ project }),
 
-  setSource: ({ source, design }) =>
-    set({ source, design, selectedNodeId: undefined, measureFromNodeId: undefined }),
+  setSource: ({ source, design, dna }) =>
+    set({ source, design, dna, selectedNodeId: undefined, measureFromNodeId: undefined }),
 
   reset: () =>
     set({
       source: undefined,
       design: undefined,
+      dna: undefined,
       panes: [],
       activePaneId: undefined,
       pickingForPaneId: undefined,
@@ -164,9 +217,12 @@ export const useWorkspace = create<WorkspaceState>((set, get) => ({
           chrome: { ...(template?.chrome ?? DEFAULT_CHROME) },
           status: 'idle',
           scrollTop: 0,
+          scrollProgress: 0,
         },
       ],
-      activePaneId: id,
+      // A second device joins as an equal. Making it active would tell the
+      // designer the new one matters more, which is the opposite of comparing.
+      activePaneId: state.panes.length === 0 ? id : state.activePaneId,
       pickingForPaneId: undefined,
     }));
     get().noteRecent(deviceId);
@@ -205,23 +261,44 @@ export const useWorkspace = create<WorkspaceState>((set, get) => ({
     set((state) => ({ panes: state.panes.map((p) => ({ ...p, chrome: { ...p.chrome, ...patch } })) })),
 
   setActivePane: (id) => set({ activePaneId: id }),
+  clearActivePane: () => set({ activePaneId: undefined }),
   setPickingFor: (id) => set({ pickingForPaneId: id }),
 
-  setScroll: (id, scrollTop) =>
-    set((state) =>
-      state.syncScroll
-        ? { panes: state.panes.map((p) => ({ ...p, scrollTop })) }
-        : { panes: state.panes.map((p) => (p.id === id ? { ...p, scrollTop } : p)) },
-    ),
+  setScroll: (id, scrollTop, scrollProgress) =>
+    set((state) => ({
+      panes: state.panes.map((pane) => {
+        if (pane.id === id) return { ...pane, scrollTop, scrollProgress };
+        if (!state.syncScroll) return pane;
+
+        /*
+         * Linked scrolling matches *progress*, not pixels.
+         *
+         * Two devices reflow to different document heights, so copying a raw
+         * scroll offset would drift further apart the further down you go, and
+         * the bottom of one would never line up with the bottom of the other.
+         */
+        const extent = Math.max(0, (pane.render?.adaptation.plan.targetScrollHeight ?? 0) - (pane.render?.adaptation.plan.usableViewport.height ?? 0));
+        return { ...pane, scrollProgress, scrollTop: extent * scrollProgress };
+      }),
+    })),
 
   setSyncScroll: (value) => set({ syncScroll: value }),
+  setAiMode: (value) => set({ aiMode: value }),
+  setOverlayMode: (value) => set({ overlayMode: value }),
+  setOverlay: (patch) => set((state) => ({ overlay: { ...state.overlay, ...patch } })),
+  setPresentMode: (value) =>
+    // Presenting hides the editor, so the inspection modes go with it.
+    set(value ? { presentMode: true, devMode: false, aiMode: false, inspectorOpen: false } : { presentMode: false }),
+  setSidebarOpen: (value) => set({ sidebarOpen: value }),
   setDevMode: (value) =>
     set({ devMode: value, ...(value ? {} : { selectedNodeId: undefined, measureFromNodeId: undefined, inspectorOpen: false }) }),
   selectNode: (nodeId) => set({ selectedNodeId: nodeId, inspectorOpen: nodeId !== undefined }),
   setMeasureFrom: (nodeId) => set({ measureFromNodeId: nodeId }),
   setInspectorOpen: (value) => set({ inspectorOpen: value }),
   setValidationExpanded: (value) => set({ validationExpanded: value }),
-  setZoom: (value) => set({ zoom: Math.min(1.5, Math.max(0.25, value)) }),
+  // Snapped to 10% steps: free-form zoom makes it impossible to return to a
+  // known scale, and two panes at 83% and 84% are not comparable.
+  setZoom: (value) => set({ zoom: Math.min(1.5, Math.max(0.3, Math.round(value * 10) / 10)) }),
 
   toggleFavourite: (deviceId) =>
     set((state) => {

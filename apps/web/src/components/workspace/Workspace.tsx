@@ -5,8 +5,10 @@ import { DeviceExplorer } from '../device-explorer/DeviceExplorer.js';
 import { PreviewControls } from './PreviewControls.js';
 import { PreviewPaneView } from './PreviewPaneView.js';
 import { Inspector } from '../dev-mode/Inspector.js';
+import { ReconstructionPanel } from '../ai-mode/ReconstructionPanel.js';
 import { ValidationPanel } from '../validation-panel/ValidationPanel.js';
 import { SourceSummary } from './SourceSummary.js';
+import { SourceSidebar } from './SourceSidebar.js';
 import { ExportPreview } from './ExportPreview.js';
 import { api, assetUrl, STANDALONE } from '../../lib/api.js';
 import { captureViewport } from '../../lib/capture.js';
@@ -30,9 +32,19 @@ export function Workspace() {
   const zoom = useWorkspace((s) => s.zoom);
   const setZoom = useWorkspace((s) => s.setZoom);
   const setPickingFor = useWorkspace((s) => s.setPickingFor);
+  const clearActivePane = useWorkspace((s) => s.clearActivePane);
+  const aiMode = useWorkspace((s) => s.aiMode);
+  const setAiMode = useWorkspace((s) => s.setAiMode);
+  const overlayMode = useWorkspace((s) => s.overlayMode);
+  const setOverlayMode = useWorkspace((s) => s.setOverlayMode);
+  const presentMode = useWorkspace((s) => s.presentMode);
+  const setPresentMode = useWorkspace((s) => s.setPresentMode);
+  const sidebarOpen = useWorkspace((s) => s.sidebarOpen);
+  const setSidebarOpen = useWorkspace((s) => s.setSidebarOpen);
   const pickingForPaneId = useWorkspace((s) => s.pickingForPaneId);
   const addPane = useWorkspace((s) => s.addPane);
   const inspectorOpen = useWorkspace((s) => s.inspectorOpen);
+  const dna = useWorkspace((s) => s.dna);
 
   const [measuredByPane, setMeasuredByPane] = useState<MeasuredMap>({});
   const [exporting, setExporting] = useState(false);
@@ -106,47 +118,92 @@ export function Workspace() {
         <SourceSummary source={source} design={design} />
 
         <div className={styles.topControls}>
-          <label className={styles.zoomControl}>
-            <span>Zoom</span>
+          <div className={styles.zoomControl}>
+            <button
+              type="button"
+              className={styles.stepButton}
+              onClick={() => setZoom(zoom - 0.1)}
+              aria-label="Zoom out"
+            >
+              −
+            </button>
             <input
               type="range"
               min={0.3}
-              max={1.2}
-              step={0.05}
+              max={1.5}
+              step={0.1}
               value={zoom}
               onChange={(event) => setZoom(Number(event.target.value))}
               aria-label="Preview zoom"
             />
-            <output>{Math.round(zoom * 100)}%</output>
-          </label>
+            <button
+              type="button"
+              className={styles.stepButton}
+              onClick={() => setZoom(zoom + 0.1)}
+              aria-label="Zoom in"
+            >
+              +
+            </button>
+            <button
+              type="button"
+              className={styles.zoomValue}
+              onClick={() => setZoom(1)}
+              title="Reset to 100%"
+            >
+              {Math.round(zoom * 100)}%
+            </button>
+          </div>
 
-          <label className={styles.checkboxControl}>
-            <input
-              type="checkbox"
-              checked={syncScroll}
-              onChange={(event) => setSyncScroll(event.target.checked)}
-            />
-            <span>Sync scrolling</span>
-          </label>
+          {panes.length > 1 && (
+            <label className={styles.checkboxControl}>
+              <input
+                type="checkbox"
+                checked={syncScroll}
+                onChange={(event) => setSyncScroll(event.target.checked)}
+              />
+              <span>Link scroll</span>
+            </label>
+          )}
 
-          {/* Dev Mode is deliberately unobtrusive and off by default
-              (spec section 13). */}
-          <label className={devMode ? styles.devToggleActive : styles.devToggle}>
-            <input
-              type="checkbox"
-              checked={devMode}
-              onChange={(event) => setDevMode(event.target.checked)}
-            />
-            <span>Dev Mode</span>
-          </label>
+          <div className={styles.modeGroup} role="group" aria-label="Modes">
+            <ModeToggle label="Overlay" checked={overlayMode} onChange={setOverlayMode} />
+            {/* Dev Mode measures; AI Mode explains. Kept distinct so the two
+                never overlap into one confusing surface (spec section 18). */}
+            <ModeToggle label="Dev" checked={devMode} onChange={setDevMode} />
+            <ModeToggle label="AI" checked={aiMode} onChange={setAiMode} />
+            <ModeToggle label="Present" checked={presentMode} onChange={setPresentMode} />
+          </div>
         </div>
       </header>
 
       <div className={styles.body}>
-        <main className={styles.stage}>
+        {sidebarOpen ? (
+          <SourceSidebar onClose={() => setSidebarOpen(false)} />
+        ) : (
+          <button
+            type="button"
+            className={styles.sidebarReveal}
+            onClick={() => setSidebarOpen(true)}
+            aria-label="Show source panel"
+            title="Show source panel"
+          >
+            ›
+          </button>
+        )}
+
+        <main
+          className={styles.stage}
+          onMouseDown={() => clearActivePane()}
+          role="presentation"
+        >
           <div className={styles.previewRow}>
-            {panes.map((pane) => (
-              <PreviewPaneView key={pane.id} pane={pane} onMeasuredNodes={onMeasuredNodes} />
+            {panes.map((pane, index) => (
+              <PreviewPaneView
+                key={pane.id}
+                pane={pane}
+                label={String.fromCharCode(65 + index)}
+                onMeasuredNodes={onMeasuredNodes}
+              />
             ))}
 
             <button
@@ -168,8 +225,18 @@ export function Workspace() {
           )}
         </main>
 
+        {!presentMode && (
         <div className={styles.rightRail}>
-          {devMode && inspectorOpen && activePane?.render ? (
+          {aiMode && activePane?.render ? (
+            <div className={styles.inspectorRail}>
+              <ReconstructionPanel
+                screen={screen}
+                adaptation={activePane.render.adaptation}
+                design={design}
+                dna={dna}
+              />
+            </div>
+          ) : devMode && inspectorOpen && activePane?.render ? (
             <div className={styles.inspectorRail}>
               <Inspector
                 screen={screen}
@@ -186,8 +253,10 @@ export function Workspace() {
             <PreviewControls pane={activePane} device={activePane.render?.device} />
           )}
         </div>
+        )}
       </div>
 
+      {!presentMode && (
       <ValidationPanel
         report={activePane?.validation}
         adaptation={activePane?.render?.adaptation}
@@ -195,6 +264,7 @@ export function Workspace() {
         busy={exporting || activePane?.status === 'loading'}
         onExport={(kind) => void handleExport(kind)}
       />
+      )}
 
       {exportMessage && (
         <p className={styles.exportMessage} role="status">
@@ -204,5 +274,23 @@ export function Workspace() {
 
       <ExportPreview preview={exportPreview} onClose={() => setExportPreview(undefined)} />
     </div>
+  );
+}
+
+/** A quiet, uniform switch for the workspace modes. */
+function ModeToggle({
+  label,
+  checked,
+  onChange,
+}: {
+  label: string;
+  checked: boolean;
+  onChange(value: boolean): void;
+}) {
+  return (
+    <label className={checked ? styles.modeToggleActive : styles.modeToggle}>
+      <input type="checkbox" checked={checked} onChange={(event) => onChange(event.target.checked)} />
+      <span>{label}</span>
+    </label>
   );
 }

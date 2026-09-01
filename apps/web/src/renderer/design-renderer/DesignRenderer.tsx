@@ -73,9 +73,21 @@ interface NodeProps {
   visibleRange?: { top: number; bottom: number };
   /** Fixed elements are rendered by the viewport, not inside the scroller. */
   skipFixed?: boolean;
+  /** Adapted origin of the parent, for document-to-local coordinates. */
+  parentOrigin?: { x: number; y: number };
 }
 
-function NodeView({ node, byId, assetUrl, devMode, selectedNodeId, onSelect, visibleRange, skipFixed }: NodeProps) {
+function NodeView({
+  node,
+  byId,
+  assetUrl,
+  devMode,
+  selectedNodeId,
+  onSelect,
+  visibleRange,
+  skipFixed,
+  parentOrigin = { x: 0, y: 0 },
+}: NodeProps) {
   const adapted = byId.get(node.id);
   if (!adapted || !node.visible) return null;
   if (skipFixed && node.position === 'fixed') return null;
@@ -87,11 +99,17 @@ function NodeView({ node, byId, assetUrl, devMode, selectedNodeId, onSelect, vis
     const top = adapted.frame.y;
     const bottom = top + adapted.frame.height;
     if (bottom < visibleRange.top || top > visibleRange.bottom) {
-      return <div style={{ position: 'absolute', left: 0, top, width: 1, height: adapted.frame.height }} aria-hidden />;
+      return (
+        <div
+          style={{ position: 'absolute', left: 0, top: top - parentOrigin.y, width: 1, height: adapted.frame.height }}
+          aria-hidden
+        />
+      );
     }
   }
 
-  const style = nodeStyle(node, adapted, assetUrl);
+  const style = nodeStyle(node, adapted, assetUrl, parentOrigin);
+  const origin = { x: adapted.frame.x, y: adapted.frame.y };
   const selected = devMode && selectedNodeId === node.id;
 
   const common = {
@@ -206,6 +224,7 @@ function NodeView({ node, byId, assetUrl, devMode, selectedNodeId, onSelect, vis
           selectedNodeId={selectedNodeId}
           onSelect={onSelect}
           visibleRange={visibleRange}
+          parentOrigin={origin}
         />
       ))}
     </div>

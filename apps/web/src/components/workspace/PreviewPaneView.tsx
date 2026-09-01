@@ -2,14 +2,17 @@ import { useCallback } from 'react';
 import { DevicePreview, type MeasuredEvidence } from '../../renderer/DevicePreview.js';
 import { usePaneRender } from '../../hooks/usePaneRender.js';
 import { useWorkspace, type PreviewPane } from '../../state/workspace.js';
+import { RenderProgress } from './RenderProgress.js';
 import styles from './Workspace.module.css';
 
 interface Props {
   pane: PreviewPane;
+  /** A, B, C… - a quiet identity, not a ranking. */
+  label: string;
   onMeasuredNodes(paneId: string, measured: Record<string, { x: number; y: number; width: number; height: number }>): void;
 }
 
-export function PreviewPaneView({ pane, onMeasuredNodes }: Props) {
+export function PreviewPaneView({ pane, label, onMeasuredNodes }: Props) {
   const design = useWorkspace((s) => s.design);
   const zoom = useWorkspace((s) => s.zoom);
   const devMode = useWorkspace((s) => s.devMode);
@@ -19,6 +22,9 @@ export function PreviewPaneView({ pane, onMeasuredNodes }: Props) {
   const setActivePane = useWorkspace((s) => s.setActivePane);
   const setScroll = useWorkspace((s) => s.setScroll);
   const selectNode = useWorkspace((s) => s.selectNode);
+
+  const overlayMode = useWorkspace((s) => s.overlayMode);
+  const overlay = useWorkspace((s) => s.overlay);
 
   const { onMeasured } = usePaneRender(pane);
 
@@ -43,11 +49,7 @@ export function PreviewPaneView({ pane, onMeasuredNodes }: Props) {
   }
 
   if (!design || !pane.render) {
-    return (
-      <div className={styles.paneLoading} aria-busy="true">
-        Rendering…
-      </div>
-    );
+    return <RenderProgress label={label} stage={pane.stage ?? 'analysing'} />;
   }
 
   const active = activePaneId === pane.id;
@@ -57,8 +59,18 @@ export function PreviewPaneView({ pane, onMeasuredNodes }: Props) {
       className={active ? styles.paneActive : styles.pane}
       data-pane-id={pane.id}
       onFocusCapture={() => setActivePane(pane.id)}
-      onMouseDown={() => setActivePane(pane.id)}
+      onMouseDown={(event) => {
+        // Selecting a pane is explicit. The canvas clears it again, so two
+        // devices can be compared with neither one privileged.
+        event.stopPropagation();
+        setActivePane(pane.id);
+      }}
     >
+      <header className={styles.paneHeader}>
+        <span className={active ? styles.paneBadgeActive : styles.paneBadge}>{label}</span>
+        <span className={styles.paneDevice}>{pane.render.device.marketingName}</span>
+      </header>
+
       <DevicePreview
         device={pane.render.device}
         design={design}
@@ -72,7 +84,8 @@ export function PreviewPaneView({ pane, onMeasuredNodes }: Props) {
         measureFromNodeId={measureFromNodeId}
         validation={pane.validation}
         scrollTop={pane.scrollTop}
-        onScroll={(scrollTop) => setScroll(pane.id, scrollTop)}
+        {...(overlayMode ? { overlay } : {})}
+        onScroll={(scrollTop, progress) => setScroll(pane.id, scrollTop, progress)}
         onSelect={selectNode}
         onMeasured={handleMeasured}
       />

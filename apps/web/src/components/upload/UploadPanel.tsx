@@ -31,7 +31,7 @@ export function UploadPanel({ figmaAvailable }: { figmaAvailable: boolean }) {
         const active = project ?? (await api.createProject('Untitled project'));
         if (!project) setProject(active);
         const result = await run(active.id);
-        setSource({ source: result.source, design: result.design });
+        setSource({ source: result.source, design: result.design, dna: result.dna });
         // Open the first preview immediately with a sensible default profile,
         // so the designer never has to configure a device to see their work.
         addPane(result.defaultDeviceId);
