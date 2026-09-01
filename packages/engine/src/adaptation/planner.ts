@@ -678,22 +678,34 @@ function shiftFollowing(
   dy: number,
   excludeId: string,
 ): void {
-  const moved = new Set<string>();
-  const visit = (node: DesignNode, insideMoved: boolean) => {
-    let moving = insideMoved;
-    if (!insideMoved && node.id !== excludeId) {
-      const adapted = byId.get(node.id);
-      // Viewport-anchored elements keep their own position; they are pinned to
-      // the screen, not carried along by the document.
-      if (adapted && node.position === 'flow' && adapted.frame.y >= fromY - 0.5) {
-        adapted.frame = { ...adapted.frame, y: round(adapted.frame.y + dy, 2) };
-        moved.add(node.id);
-        moving = true;
-      }
+  const visit = (node: DesignNode) => {
+    /*
+     * The bar that grew is skipped along with everything inside it.
+     *
+     * Its own contents have already been moved down by the caller, which can
+     * push them past `fromY`. Visiting them here would move them a second time
+     * and drop the bar's text out of the bar and onto whatever follows.
+     */
+    if (node.id === excludeId) return;
+
+    const adapted = byId.get(node.id);
+    // Viewport-anchored elements keep their own position; they are pinned to
+    // the screen, not carried along by the document.
+    if (adapted && node.position === 'flow' && adapted.frame.y >= fromY - 0.5) {
+      adapted.frame = { ...adapted.frame, y: round(adapted.frame.y + dy, 2) };
+      /*
+       * Frames are stored in document coordinates, so a container that moves
+       * has to carry its descendants with it. Moving the container alone would
+       * leave its children at their old absolute positions, and the renderer -
+       * which derives a child's offset by subtracting its parent's origin -
+       * would draw them `dy` above where they belong, outside the box.
+       */
+      shiftDescendants(node, byId, dy);
+      return;
     }
-    for (const child of childrenOf(node)) visit(child, moving);
+    for (const child of childrenOf(node)) visit(child);
   };
-  for (const child of childrenOf(root)) visit(child, false);
+  for (const child of childrenOf(root)) visit(child);
 }
 
 function shiftDescendants(node: DesignNode, byId: Map<string, AdaptedNode>, dy: number): void {

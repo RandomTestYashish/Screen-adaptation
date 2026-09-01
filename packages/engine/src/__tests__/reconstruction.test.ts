@@ -1,11 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { flatten, measured, PARSER_VERSION, primaryScreen, type SourceDocument } from '@dae/shared';
+import { childrenOf, flatten, measured, PARSER_VERSION, primaryScreen, type DesignNode, type SourceDocument } from '@dae/shared';
 import { loadCatalog } from '@dae/device-catalog';
 import { reconstructRaster } from '../reconstruction/reconstruct.js';
 import { detectGrid } from '../reconstruction/design-dna.js';
 import { perceptualDistance, rgbContrastRatio, toHex, type PixelData } from '../reconstruction/pixels.js';
 import { detectBackground } from '../reconstruction/segmentation.js';
 import { planAdaptation } from '../adaptation/planner.js';
+import { structuredDesign, structuredScreen } from './fixtures.js';
 import { adaptationFidelity } from '../adaptation/fidelity.js';
 import { flatSourceFidelity, sourceFidelityOf } from '../reconstruction/fidelity.js';
 
@@ -332,5 +333,93 @@ describe('the two fidelity scores stay separate', () => {
     );
     expect(after.score).toBe(adapted.score);
     expect(sourceFidelityOf(poor).score).toBe(10);
+  });
+});
+
+describe('a flow bar that grows for the safe area', () => {
+  /*
+   * A top bar in the document flow, with a title inside it. On a device whose
+   * top inset is larger than the source reserves, the bar grows and everything
+   * after it shifts down. Two things must stay true: the bar's own title moves
+   * exactly once, and every container carries its children with it.
+   */
+  const flowScreen = structuredScreen();
+  const bar = (flowScreen.root as { children: DesignNode[] }).children.find((c) => c.id === 'header')!;
+  (bar as { position: string }).position = 'flow';
+  /*
+   * A full-document frame, the way a reconstructed screenshot arrives. It
+   * matches no device exactly, so the source is assumed to reserve no safe
+   * area and the whole of the target's inset is applied - a large enough delta
+   * to push the bar's own title past the bar's original bottom edge, which is
+   * where the double-shift showed up in the real app.
+   */
+  flowScreen.frame = { width: 375, height: 2400 };
+
+  const target = device('apple-iphone-16-pro-max');
+  const { plan, nodes } = planAdaptation({
+    design: structuredDesign(flowScreen),
+    screen: flowScreen,
+    device: target,
+    catalog,
+    projectId: 'p1',
+  });
+  const byId = new Map(nodes.map((node) => [node.nodeId, node]));
+
+  it('grew the bar for this device', () => {
+    expect(plan.transforms.some((t) => t.type === 'safe-area-inset')).toBe(true);
+  });
+
+  it('moves the bar\'s own contents exactly once', () => {
+    const barBox = byId.get('header')!;
+    const title = byId.get('title')!;
+    const grew = barBox.frame.height - bar.frame.height;
+    expect(grew).toBeGreaterThan(0);
+    /*
+     * The bar grew at its top, so its title moves down by exactly that much to
+     * clear the cutout - once, not twice. Moving it again as "following
+     * content" would drop it out of the bar and onto the next section, which
+     * is what a screenshot of the real app showed.
+     */
+    const moved = title.frame.y - (bar as { children: DesignNode[] }).children[0]!.frame.y;
+    expect(moved).toBeCloseTo(grew, 1);
+    expect(title.frame.y).toBeGreaterThanOrEqual(barBox.frame.y);
+    expect(title.frame.y + title.frame.height).toBeLessThanOrEqual(barBox.frame.y + barBox.frame.height + 1);
+  });
+
+  it('carries every container\'s children with it', () => {
+    /*
+     * Frames are absolute, but what the renderer draws is the child's offset
+     * *within* its parent. Nothing in this adaptation is supposed to change
+     * that offset, so comparing it before and after catches a container that
+     * moved while leaving its children behind - which would draw them outside
+     * the box - and a child that moved twice.
+     */
+    const check = (node: DesignNode): void => {
+      const parentBox = byId.get(node.id);
+      for (const child of childrenOf(node)) {
+        const childBox = byId.get(child.id);
+        // The anchored bar is the one legitimate exception: it grew at its
+        // top, so its contents move down by that amount to clear the cutout.
+        // That is checked separately above.
+        if (parentBox && childBox && child.position === 'flow' && node.position === 'flow' && node.id !== 'header') {
+          const before = child.frame.y - node.frame.y;
+          const after = childBox.frame.y - parentBox.frame.y;
+          expect(after, `${child.name} moved relative to ${node.name}`).toBeCloseTo(before, 1);
+        }
+        check(child);
+      }
+    };
+    for (const child of childrenOf(flowScreen.root)) check(child);
+  });
+
+  it('does not let the grown bar overlap what follows it', () => {
+    const barBox = byId.get('header')!;
+    const following = childrenOf(flowScreen.root)
+      .filter((node) => node.id !== 'header' && node.position === 'flow')
+      .map((node) => byId.get(node.id))
+      .filter((box): box is NonNullable<typeof box> => Boolean(box));
+    for (const box of following) {
+      expect(box.frame.y).toBeGreaterThanOrEqual(barBox.frame.y + barBox.frame.height - 1);
+    }
   });
 });
