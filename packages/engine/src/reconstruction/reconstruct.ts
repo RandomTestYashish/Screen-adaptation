@@ -8,6 +8,7 @@ import {
   type DesignDocument,
   type DesignNode,
   type Screen,
+  type FidelityScore,
   type SourceDocument,
 } from '@dae/shared';
 import {
@@ -32,6 +33,7 @@ import {
   type DesignDna,
 } from './design-dna.js';
 import { classifyRegion, countRepetitions, type Classification } from './classify.js';
+import { scoreSourceFidelity } from './fidelity.js';
 
 export interface ReconstructionInput {
   source: SourceDocument;
@@ -53,6 +55,12 @@ export interface ReconstructionResult {
   regions: ReconstructedRegion[];
   /** Share of the document area covered by confidently reconstructed regions. */
   structuralCoverage: number;
+  /**
+   * How faithfully this representation matches the upload. Kept separate from
+   * the adaptation's preservation score, which answers a different question
+   * about a different artefact (spec section 31).
+   */
+  sourceFidelity: FidelityScore;
   warnings: string[];
   timings: { totalMs: number; stages: Record<string, number> };
 }
@@ -335,6 +343,18 @@ export function reconstructRaster(input: ReconstructionInput): ReconstructionRes
     warnings.push('No text was detected, so no type scale could be extracted.');
   }
 
+  const sourceFidelity = scoreSourceFidelity({
+    // Logical units, to match the region boxes recorded above.
+    documentArea: source.width * source.height,
+    regions: regions.map((r) => ({ box: r.box, classification: r.classification, confidence: r.confidence })),
+    background,
+    dna,
+    // The analysis may have run on a downscaled copy. Reported so the score's
+    // own confidence reflects what the analysis could actually see.
+    analysisScale: image.width / (source.pixelWidth ?? source.width),
+    warnings,
+  });
+
   const design: DesignDocument = {
     id: newId('design'),
     sourceId: source.id,
@@ -345,6 +365,7 @@ export function reconstructRaster(input: ReconstructionInput): ReconstructionRes
     parserVersion: PARSER_VERSION,
     createdAt: new Date().toISOString(),
     screens: [screen],
+    sourceFidelity,
     fontsUsed: [],
     assetsUsed: [source.assetId],
     notes: [
@@ -358,6 +379,7 @@ export function reconstructRaster(input: ReconstructionInput): ReconstructionRes
     dna,
     regions,
     structuralCoverage,
+    sourceFidelity,
     warnings,
     timings: { totalMs: now() - started, stages },
   };

@@ -62,7 +62,7 @@ export class AdaptationsController {
           deviceId: adaptation.plan.deviceId,
           deviceName: this.devices.get(adaptation.plan.deviceId).marketingName,
           createdAt: adaptation.plan.createdAt,
-          preservationScore: adaptation.plan.preservation.score,
+          adaptationFidelity: adaptation.plan.preservation.score,
           validationStatus: validation?.status ?? ('not-run' as const),
         };
       }),

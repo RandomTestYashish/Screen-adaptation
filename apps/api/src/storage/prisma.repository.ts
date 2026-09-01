@@ -185,7 +185,7 @@ export class PrismaRepository implements Repository {
         status: report.status,
         criticalCount: report.criticalCount,
         warningCount: report.warningCount,
-        preservationScore: report.preservationScore,
+        preservationScore: report.fidelity.adaptation.score,
         confidence: report.confidence,
         engineVersion: report.engineVersion,
         createdAt: new Date(report.createdAt),

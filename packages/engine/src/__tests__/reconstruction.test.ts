@@ -6,6 +6,8 @@ import { detectGrid } from '../reconstruction/design-dna.js';
 import { perceptualDistance, rgbContrastRatio, toHex, type PixelData } from '../reconstruction/pixels.js';
 import { detectBackground } from '../reconstruction/segmentation.js';
 import { planAdaptation } from '../adaptation/planner.js';
+import { adaptationFidelity } from '../adaptation/fidelity.js';
+import { flatSourceFidelity, sourceFidelityOf } from '../reconstruction/fidelity.js';
 
 const catalog = loadCatalog();
 const device = (id: string) => {
@@ -274,3 +276,61 @@ function hexToRgb(hex: string) {
     b: parseInt(v.slice(4, 6), 16),
   };
 }
+
+describe('source fidelity', () => {
+  const fidelity = result.sourceFidelity;
+
+  it('asks about the upload, not about any device', () => {
+    expect(fidelity.kind).toBe('source');
+    expect(fidelity.question).toMatch(/upload/i);
+    // The score is a property of the document, so every device sees the same one.
+    expect(result.design.sourceFidelity?.score).toBe(fidelity.score);
+  });
+
+  it('is high because most of the document is still the original pixels', () => {
+    expect(fidelity.score).toBeGreaterThan(80);
+    expect(fidelity.reasons.join(' ')).toMatch(/uploaded bitmap itself/);
+  });
+
+  it('states that the font family is unknown rather than scoring as if it were known', () => {
+    expect(fidelity.limitations.join(' ')).toMatch(/font family cannot be recovered/i);
+  });
+
+  it('carries its own confidence, separate from the score', () => {
+    expect(fidelity.confidence).toBeGreaterThan(0);
+    expect(fidelity.confidence).toBeLessThanOrEqual(1);
+    expect(fidelity.measurementType).toBe('DETECTED');
+  });
+
+  it('reports a flat raster document as exact but structureless', () => {
+    const flat = flatSourceFidelity();
+    expect(flat.score).toBe(100);
+    expect(flat.limitations.join(' ')).toMatch(/never reflowed/);
+  });
+});
+
+describe('the two fidelity scores stay separate', () => {
+  const target = device('apple-iphone-16-pro-max');
+  const { plan } = planAdaptation({ design: result.design, screen, device: target, catalog, projectId: 'p1' });
+  const adapted = adaptationFidelity(plan, target);
+
+  it('answers a different question from source fidelity', () => {
+    expect(adapted.kind).toBe('adaptation');
+    expect(adapted.question).not.toBe(result.sourceFidelity.question);
+  });
+
+  it('is derived from the transform record, and says so', () => {
+    expect(adapted.measurementType).toBe('INFERRED');
+    expect(adapted.limitations.join(' ')).toMatch(/not from a pixel comparison/);
+  });
+
+  it('does not inherit the source score, so a bad reconstruction cannot hide behind it', () => {
+    const poor = { ...result.design, sourceFidelity: { ...result.sourceFidelity, score: 10 } };
+    const after = adaptationFidelity(
+      planAdaptation({ design: poor, screen, device: target, catalog, projectId: 'p1' }).plan,
+      target,
+    );
+    expect(after.score).toBe(adapted.score);
+    expect(sourceFidelityOf(poor).score).toBe(10);
+  });
+});

@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import * as Tabs from '@radix-ui/react-tabs';
-import type { AdaptationResult, DeviceProfile, MetadataRow, ValidationReport } from '@dae/shared';
+import type { AdaptationResult, DeviceProfile, FidelityScore, MetadataRow, ValidationReport } from '@dae/shared';
 import { useWorkspace } from '../../state/workspace.js';
 import styles from './ValidationPanel.module.css';
 
@@ -53,11 +53,20 @@ export function ValidationPanel({ report, adaptation, device, busy, onExport }: 
         </span>
 
         <span className={styles.barRight}>
+          {report && (
+            <Metric
+              label="source fidelity"
+              value={`${Math.round(report.fidelity.source.score)}/100`}
+              tone={tone(report.fidelity.source.score)}
+              title={report.fidelity.source.question}
+            />
+          )}
           {adaptation && (
             <Metric
-              label="preservation"
+              label="adaptation fidelity"
               value={`${adaptation.plan.preservation.score}/100`}
-              tone={adaptation.plan.preservation.score >= 95 ? 'good' : adaptation.plan.preservation.score >= 80 ? 'neutral' : 'warn'}
+              tone={tone(adaptation.plan.preservation.score)}
+              title="Does the device render preserve the design we hold?"
             />
           )}
           {report && (
@@ -220,14 +229,14 @@ function Details({
             </li>
           ))}
         </ul>
-        <section className={styles.preservation}>
-          <h4 className={styles.metadataHeading}>Preservation {adaptation.plan.preservation.score}/100</h4>
-          <ul className={styles.reasonList}>
-            {adaptation.plan.preservation.reasons.map((reason, index) => (
-              <li key={index}>{reason}</li>
-            ))}
-          </ul>
-        </section>
+        {/*
+          Two scores, never averaged. They answer different questions and are
+          fixed in different places: a low source score means the analysis
+          misread the upload, a low adaptation score means the layout rules
+          moved more than they had to (spec section 31).
+        */}
+        <FidelityCard score={report.fidelity.source} />
+        <FidelityCard score={report.fidelity.adaptation} />
       </Tabs.Content>
 
       <Tabs.Content value="passes" className={styles.tabContent}>
@@ -298,6 +307,36 @@ function Details({
   );
 }
 
+function tone(score: number): 'good' | 'neutral' | 'warn' {
+  return score >= 95 ? 'good' : score >= 80 ? 'neutral' : 'warn';
+}
+
+function FidelityCard({ score }: { score: FidelityScore }) {
+  return (
+    <section className={styles.preservation}>
+      <h4 className={styles.metadataHeading}>
+        {score.kind === 'source' ? 'Source fidelity' : 'Adaptation fidelity'} {Math.round(score.score)}/100
+        <span className={styles.fidelityMeta}>
+          {Math.round(score.confidence * 100)}% confidence · {score.measurementType}
+        </span>
+      </h4>
+      <p className={styles.fidelityQuestion}>{score.question}</p>
+      <ul className={styles.reasonList}>
+        {score.reasons.map((reason, index) => (
+          <li key={index}>{reason}</li>
+        ))}
+      </ul>
+      {score.limitations.length > 0 && (
+        <ul className={styles.limitationList}>
+          {score.limitations.map((limitation, index) => (
+            <li key={index}>{limitation}</li>
+          ))}
+        </ul>
+      )}
+    </section>
+  );
+}
+
 function StatusPill({ status, label }: { status: string; label: string }) {
   return (
     <span className={styles.statusPill} data-status={status}>
@@ -306,9 +345,19 @@ function StatusPill({ status, label }: { status: string; label: string }) {
   );
 }
 
-function Metric({ label, value, tone }: { label: string; value: string; tone: 'good' | 'warn' | 'bad' | 'neutral' }) {
+function Metric({
+  label,
+  value,
+  tone,
+  title,
+}: {
+  label: string;
+  value: string;
+  tone: 'good' | 'warn' | 'bad' | 'neutral';
+  title?: string;
+}) {
   return (
-    <span className={styles.metric} data-tone={tone}>
+    <span className={styles.metric} data-tone={tone} title={title}>
       <span className={styles.metricLabel}>{label}</span>
       <span className={styles.metricValue}>{value}</span>
     </span>

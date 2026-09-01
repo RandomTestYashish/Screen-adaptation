@@ -435,3 +435,29 @@
   line-height: 1.55;
   max-width: 620px;
 }
+
+.fidelityMeta {
+  margin-left: 8px;
+  font-weight: 400;
+  color: var(--text-muted);
+}
+
+.fidelityQuestion {
+  margin: 2px 0 6px;
+  font-style: italic;
+  color: var(--text-muted);
+}
+
+/*
+ * Limitations sit under the reasons rather than beside them: they qualify the
+ * score, and a reader who stops at the number should still see them.
+ */
+.limitationList {
+  margin: 6px 0 0;
+  padding-left: 16px;
+  color: var(--text-faint);
+}
+
+.limitationList li {
+  margin-bottom: 3px;
+}

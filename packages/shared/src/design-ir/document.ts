@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { DesignNodeSchema, type DesignNode } from './nodes.js';
 import { ColorSchema, LogicalPx, SizeSchema } from './primitives.js';
 import { ProvenanceSchema } from './provenance.js';
+import { FidelityScoreSchema } from '../validation/fidelity.js';
 
 export const SourceKindSchema = z.enum(['raster', 'figma']);
 export type SourceKind = z.infer<typeof SourceKindSchema>;
@@ -90,6 +91,14 @@ export const DesignDocumentSchema = z.object({
    * revealing more or less content per viewport (spec sections 1 and 9).
    */
   structure: z.enum(['figma', 'reconstructed', 'flat']).default('flat'),
+  /**
+   * How faithfully this representation matches the upload it was built from.
+   *
+   * Recorded here because it is a property of the *document*, fixed at import
+   * time and identical on every device. The adaptation half of the pair is
+   * computed per device and lives on the validation report.
+   */
+  sourceFidelity: FidelityScoreSchema.optional(),
   irVersion: z.string(),
   parserVersion: z.string(),
   createdAt: z.string().datetime(),

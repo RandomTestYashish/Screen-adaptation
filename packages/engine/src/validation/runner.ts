@@ -17,6 +17,8 @@ import {
   type ValidationPass,
   type ValidationReport,
 } from '@dae/shared';
+import { adaptationFidelity } from '../adaptation/fidelity.js';
+import { sourceFidelityOf } from '../reconstruction/fidelity.js';
 import { planAdaptation } from '../adaptation/planner.js';
 import { buildContext, type ValidationContext } from './context.js';
 import { checkGeometry, type CheckOutput } from './checks/geometry.js';
@@ -302,7 +304,10 @@ export async function runValidation(input: ValidationInput): Promise<ValidationO
     status: criticalCount > 0 ? 'fail' : warningCount > 0 ? 'pass-with-warnings' : 'pass',
     criticalCount,
     warningCount,
-    preservationScore: adaptation.plan.preservation.score,
+    fidelity: {
+      source: sourceFidelityOf(input.design),
+      adaptation: adaptationFidelity(adaptation.plan, input.device),
+    },
     confidence,
     metadata: buildMetadataRows(secondCtx),
     limitations,

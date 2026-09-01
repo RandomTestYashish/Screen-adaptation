@@ -169,7 +169,8 @@ export const RenderListResponse = z.object({
       deviceId: z.string(),
       deviceName: z.string(),
       createdAt: z.string().datetime(),
-      preservationScore: z.number(),
+      /** The adaptation half of the fidelity pair; see FidelityReport. */
+      adaptationFidelity: z.number(),
       validationStatus: z.enum(['pass', 'pass-with-warnings', 'fail', 'not-run']),
     }),
   ),

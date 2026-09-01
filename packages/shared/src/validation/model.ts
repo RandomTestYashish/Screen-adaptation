@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { RectSchema } from '../design-ir/primitives.js';
+import { FidelityReportSchema } from './fidelity.js';
 
 /** The 14 mandatory checks from spec section 15. */
 export const ValidationCheckIdSchema = z.enum([
@@ -98,8 +99,12 @@ export const ValidationReportSchema = z.object({
   status: z.enum(['pass', 'pass-with-warnings', 'fail']),
   criticalCount: z.number().int().nonnegative(),
   warningCount: z.number().int().nonnegative(),
-  /** Copied from the final adaptation plan for convenience. */
-  preservationScore: z.number().min(0).max(100),
+  /**
+   * The two fidelity questions, kept apart (spec section 31). There is
+   * deliberately no combined number: the two are fixed in different places and
+   * a single score cannot say which one is at fault.
+   */
+  fidelity: FidelityReportSchema,
   /** Overall confidence in the report itself, limited by skipped checks. */
   confidence: z.number().min(0).max(1),
   metadata: z.array(MetadataRowSchema),
