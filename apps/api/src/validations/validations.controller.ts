@@ -1,7 +1,7 @@
 import { Body, Controller, Get, Param, Post } from '@nestjs/common';
 import { ValidationReportSchema, ValidationRunRequest, ValidationRunResponse } from '@dae/shared';
 import { parseOrThrow } from '../common/errors.js';
-import { type ValidationService } from './validation.service.js';
+import { ValidationService } from './validation.service.js';
 
 @Controller('validations')
 export class ValidationsController {

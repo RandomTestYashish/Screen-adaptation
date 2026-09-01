@@ -1,10 +1,10 @@
 import { Body, Controller, Get, Inject, NotFoundException, Param, Post } from '@nestjs/common';
 import { PlanRequest, PlanResponse, RenderListResponse, RenderRequest, RenderResponse } from '@dae/shared';
 import { parseOrThrow } from '../common/errors.js';
-import { type AdaptationService } from './adaptation.service.js';
-import { type DevicesService } from '../devices/devices.service.js';
+import { AdaptationService } from './adaptation.service.js';
+import { DevicesService } from '../devices/devices.service.js';
 import { REPOSITORY, type Repository } from '../storage/repository.js';
-import { type LocalAssetStore } from '../assets/asset-store.js';
+import { LocalAssetStore } from '../assets/asset-store.js';
 
 @Controller()
 export class AdaptationsController {

@@ -7,7 +7,8 @@ import { PreviewPaneView } from './PreviewPaneView.js';
 import { Inspector } from '../dev-mode/Inspector.js';
 import { ValidationPanel } from '../validation-panel/ValidationPanel.js';
 import { SourceSummary } from './SourceSummary.js';
-import { api, assetUrl } from '../../lib/api.js';
+import { ExportPreview } from './ExportPreview.js';
+import { api, assetUrl, STANDALONE } from '../../lib/api.js';
 import { captureViewport } from '../../lib/capture.js';
 import styles from './Workspace.module.css';
 
@@ -36,6 +37,7 @@ export function Workspace() {
   const [measuredByPane, setMeasuredByPane] = useState<MeasuredMap>({});
   const [exporting, setExporting] = useState(false);
   const [exportMessage, setExportMessage] = useState<string>();
+  const [exportPreview, setExportPreview] = useState<{ kind: string; url: string; size: string }>();
 
   const activePane = panes.find((p) => p.id === activePaneId) ?? panes[0];
   const screen = useMemo(() => (design ? primaryScreen(design) : undefined), [design]);
@@ -76,8 +78,17 @@ export function Workspace() {
           format: kind.endsWith('image') ? 'png' : 'json',
           ...(imageDataUrl ? { imageDataUrl } : {}),
         });
+        const size = `${Math.round(result.byteSize / 1024)} KB`;
+
+        if (STANDALONE) {
+          // The embedded preview's sandbox blocks downloads, so show the
+          // artefact instead of pretending to save it.
+          setExportPreview({ kind: result.kind, url: assetUrl(result.url), size });
+          setExportMessage(undefined);
+          return;
+        }
         window.open(assetUrl(result.url), '_blank', 'noopener');
-        setExportMessage(`Exported ${result.kind} (${Math.round(result.byteSize / 1024)} KB) with full provenance.`);
+        setExportMessage(`Exported ${result.kind} (${size}) with full provenance.`);
       } catch (cause) {
         setExportMessage((cause as Error).message);
       } finally {
@@ -190,6 +201,8 @@ export function Workspace() {
           {exportMessage}
         </p>
       )}
+
+      <ExportPreview preview={exportPreview} onClose={() => setExportPreview(undefined)} />
     </div>
   );
 }

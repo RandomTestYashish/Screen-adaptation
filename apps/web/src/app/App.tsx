@@ -27,6 +27,14 @@ export function App() {
 
   return (
     <div className={styles.app}>
+      <aside className="narrow-notice">
+        <strong>This is a desktop workspace.</strong>
+        <span>
+          It puts phone previews at 1:1 next to a device explorer and a measurement panel, which needs roughly a
+          laptop&apos;s width. On a narrow screen you can still look around, but the previews will be cramped.
+        </span>
+      </aside>
+
       {design ? <Workspace /> : <UploadPanel figmaAvailable={health?.capabilities.figmaImport ?? false} />}
 
       {health && (

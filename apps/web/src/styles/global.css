@@ -117,3 +117,32 @@ fieldset {
   padding: 0;
   border: none;
 }
+
+/*
+ * This is a desktop workspace: three columns, a phone preview at 1:1, and a
+ * measurement panel. Below roughly a laptop width there is no honest way to
+ * show all of that, so say so rather than shipping a broken layout.
+ */
+.narrow-notice {
+  display: none;
+}
+
+@media (max-width: 900px) {
+  .narrow-notice {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    align-items: flex-start;
+    margin: 0;
+    padding: 14px 16px;
+    background: var(--accent-soft);
+    border-bottom: 1px solid var(--border);
+    color: #1e3a8a;
+    font-size: 12.5px;
+    line-height: 1.6;
+  }
+
+  .narrow-notice strong {
+    font-size: 13.5px;
+  }
+}

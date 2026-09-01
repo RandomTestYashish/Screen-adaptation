@@ -1,6 +1,8 @@
 import { useCallback, useRef, useState } from 'react';
 import * as Tabs from '@radix-ui/react-tabs';
-import { api, ApiRequestError } from '../../lib/api.js';
+import { api, ApiRequestError, STANDALONE } from '../../lib/api.js';
+import feedSample from '../../samples/feed.png';
+import checkoutSample from '../../samples/checkout.png';
 import { useWorkspace } from '../../state/workspace.js';
 import styles from './UploadPanel.module.css';
 
@@ -45,6 +47,13 @@ export function UploadPanel({ figmaAvailable }: { figmaAvailable: boolean }) {
   const handleFile = useCallback(
     (file: File) => {
       void ingest((projectId) => api.uploadSource(projectId, file));
+    },
+    [ingest],
+  );
+
+  const handleSample = useCallback(
+    (source: string, name: string) => {
+      void ingest((projectId) => api.uploadSample(projectId, source, name));
     },
     [ingest],
   );
@@ -110,6 +119,28 @@ export function UploadPanel({ figmaAvailable }: { figmaAvailable: boolean }) {
               preserved.
             </p>
           </div>
+
+          <div className={styles.samples}>
+              <span className={styles.samplesLabel}>or try a sample design</span>
+              <div className={styles.sampleButtons}>
+                <button
+                  type="button"
+                  className={styles.sampleButton}
+                  disabled={busy}
+                  onClick={() => handleSample(feedSample, 'feed-375x2400.png')}
+                >
+                  Long feed · 375 × 2400
+                </button>
+                <button
+                  type="button"
+                  className={styles.sampleButton}
+                  disabled={busy}
+                  onClick={() => handleSample(checkoutSample, 'checkout-375x1180.png')}
+                >
+                  Checkout · 375 × 1180
+                </button>
+            </div>
+          </div>
         </Tabs.Content>
 
         <Tabs.Content value="figma" className={styles.tabContent}>
@@ -128,6 +159,12 @@ export function UploadPanel({ figmaAvailable }: { figmaAvailable: boolean }) {
       )}
 
       <ul className={styles.guarantees}>
+        {STANDALONE && (
+          <li className={styles.standaloneNote}>
+            This is a self-contained browser preview: the real adaptation and validation engines and the full
+            device catalog run on this page. Nothing you drop here is uploaded anywhere.
+          </li>
+        )}
         <li>Your file is stored unchanged and hashed. Nothing overwrites it.</li>
         <li>Device parameters come from the catalog — you never type a safe area or notch size.</li>
         <li>Every adaptation is validated twice and reports what it could not verify.</li>

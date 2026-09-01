@@ -16,7 +16,7 @@
     "dev:web": "pnpm --filter @dae/web dev",
     "dev:worker": "pnpm --filter @dae/worker dev",
     "typecheck": "tsc -b tsconfig.build.json",
-    "test": "vitest run",
+    "test": "pnpm --filter @dae/api build && vitest run",
     "test:watch": "vitest",
     "test:e2e": "playwright test",
     "lint": "eslint . --ext .ts,.tsx",
@@ -25,7 +25,9 @@
     "catalog:verify": "pnpm --filter @dae/device-catalog verify",
     "db:generate": "pnpm --filter @dae/api prisma:generate",
     "db:migrate": "pnpm --filter @dae/api prisma:migrate",
-    "build:clean": "pnpm clean && pnpm build"
+    "build:clean": "pnpm clean && pnpm build",
+    "build:standalone": "pnpm --filter @dae/shared build && pnpm --filter @dae/device-catalog build && pnpm --filter @dae/engine build && pnpm --filter @dae/web build:standalone",
+    "build:artifact": "pnpm build:standalone && node apps/web/scripts/to-artifact.mjs apps/web/dist-standalone/index.html apps/web/dist-standalone/artifact.html"
   },
   "devDependencies": {
     "@axe-core/playwright": "4.10.1",
@@ -38,6 +40,7 @@
     "eslint-plugin-react-hooks": "4.6.2",
     "prettier": "3.4.2",
     "typescript": "5.7.3",
+    "vite-plugin-singlefile": "2.1.0",
     "vitest": "2.1.8"
   }
 }

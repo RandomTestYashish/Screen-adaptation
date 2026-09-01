@@ -42,6 +42,21 @@ no AI provider**: it persists to JSON files under `.data/`, stores assets under
 `.storage/`, runs jobs in-process, and uses only deterministic analysis. Each of
 those is a one-line change in `.env` when you want the real thing.
 
+### Standalone browser build
+
+`pnpm build:standalone` produces a single ~750 KB HTML file that runs the whole
+product client-side: the same `@dae/engine`, the same normalized device catalog,
+the same renderer, with an in-memory store standing in for the API. Open the
+file directly — no server, no install, nothing leaves the page.
+
+That is possible because the engine is deliberately free of Node built-ins, and
+it is a useful check on that boundary: if someone reaches for `fs` in the
+pipeline, this build stops compiling.
+
+Two capabilities genuinely need the server and report themselves as unavailable
+rather than being faked: Figma import (which needs a server-held token) and the
+pixel-level visual comparison (which runs in the API worker).
+
 ### Individual commands
 
 ```bash
@@ -56,6 +71,8 @@ pnpm catalog:sync       # regenerate the device catalog from its providers
 pnpm catalog:sync -- --dry   # report what would change, write nothing
 pnpm catalog:verify     # fail if the committed catalog is stale
 pnpm build:clean        # wipe build output (including tsbuildinfo) and rebuild
+pnpm build:standalone   # one self-contained HTML file, no server required
+pnpm build:artifact     # the same, converted to an embeddable body document
 pnpm db:generate        # Prisma client (only for STORAGE_DRIVER=postgres)
 pnpm db:migrate         # apply migrations
 ```

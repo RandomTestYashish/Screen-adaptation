@@ -10,6 +10,14 @@
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
     },
+    "./query": {
+      "types": "./dist/query.d.ts",
+      "default": "./dist/query.js"
+    },
+    "./fingerprint": {
+      "types": "./dist/fingerprint.d.ts",
+      "default": "./dist/fingerprint.js"
+    },
     "./catalog.json": "./data/catalog.json"
   },
   "scripts": {

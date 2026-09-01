@@ -20,7 +20,7 @@ import {
 } from '@dae/shared';
 import type { ZodTypeAny, z } from 'zod';
 
-const BASE = (import.meta.env['VITE_API_BASE_URL'] as string | undefined) ?? 'http://localhost:4000';
+const BASE = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:4000';
 
 export class ApiRequestError extends Error {
   constructor(
@@ -62,7 +62,9 @@ async function request<S extends ZodTypeAny>(
 }
 
 export function assetUrl(signedPath: string): string {
-  return signedPath.startsWith('http') ? signedPath : `${BASE}${signedPath}`;
+  // The standalone backend hands back blob: and data: URLs, which are already
+  // absolute; only a server-relative signed path needs the API origin.
+  return /^[a-z]+:/i.test(signedPath) ? signedPath : `${BASE}${signedPath}`;
 }
 
 export interface HealthStatus {
@@ -73,7 +75,7 @@ export interface HealthStatus {
   capabilities: { figmaImport: boolean; rasterAnalysis: boolean; rasterAnalysisUnavailableReason: string | null };
 }
 
-export const api = {
+export const remoteApi = {
   async health(): Promise<HealthStatus> {
     const response = await fetch(`${BASE}/health`);
     if (!response.ok) throw new ApiRequestError('The API is not reachable', response.status);
@@ -89,6 +91,15 @@ export const api = {
     form.append('projectId', projectId);
     form.append('file', file);
     return request('/sources/upload', UploadSourceResponse, { method: 'POST', body: form });
+  },
+
+  /**
+   * Import one of the designs bundled with the app, so there is always
+   * something to try without hunting for a mobile export.
+   */
+  async uploadSample(projectId: string, source: string, name: string): Promise<UploadSourceResponseT> {
+    const blob = await (await fetch(source)).blob();
+    return remoteApi.uploadSource(projectId, new File([blob], name, { type: blob.type || 'image/png' }));
   },
 
   importFigma(input: { projectId: string; fileKey: string; nodeId: string; accessToken?: string }) {
@@ -139,3 +150,40 @@ export const api = {
     return request('/exports', ExportResponse, { method: 'POST', body: JSON.stringify(input) });
   },
 };
+
+/**
+ * Build-time backend selection.
+ *
+ * `VITE_STANDALONE=true` produces a single self-contained page that runs the
+ * real engine and the real device catalog in the browser, with no server. It is
+ * the same code path otherwise: the standalone backend implements this exact
+ * surface, so no component knows which one it is talking to.
+ */
+export const STANDALONE = import.meta.env.VITE_STANDALONE === 'true';
+
+type Backend = Pick<
+  typeof remoteApi,
+  | 'health'
+  | 'createProject'
+  | 'uploadSource'
+  | 'uploadSample'
+  | 'importFigma'
+  | 'listDevices'
+  | 'getDevice'
+  | 'render'
+  | 'validate'
+  | 'export'
+>;
+
+let selected: Backend = remoteApi;
+
+if (STANDALONE) {
+  // `STANDALONE` collapses to a literal at build time, so the whole branch -
+  // and with it the standalone backend, the engine and the inlined catalog -
+  // is eliminated from the client-server build rather than shipped as an
+  // unused chunk.
+  const { localBackend } = await import('./local-backend.js');
+  selected = localBackend as unknown as Backend;
+}
+
+export const api = selected;

@@ -3,9 +3,9 @@ import { Throttle } from '@nestjs/throttler';
 import sharp from 'sharp';
 import { ExportRequest, ExportResponse, newId } from '@dae/shared';
 import { parseOrThrow } from '../common/errors.js';
-import { type AdaptationService } from '../adaptations/adaptation.service.js';
-import { type DevicesService } from '../devices/devices.service.js';
-import { type LocalAssetStore } from '../assets/asset-store.js';
+import { AdaptationService } from '../adaptations/adaptation.service.js';
+import { DevicesService } from '../devices/devices.service.js';
+import { LocalAssetStore } from '../assets/asset-store.js';
 import { REPOSITORY, type Repository } from '../storage/repository.js';
 import { loadEnv } from '../config/env.js';
 

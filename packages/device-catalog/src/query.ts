@@ -1,3 +1,8 @@
+/**
+ * Catalog queries. Deliberately free of Node built-ins so this module can also
+ * run in the browser: the standalone preview build of the web app runs the
+ * whole pipeline client-side against an inlined catalog.
+ */
 import type { DeviceCatalog, DeviceProfile, DeviceQueryT, DeviceListResponseT } from '@dae/shared';
 
 export type SizeCategory = 'compact' | 'regular' | 'large';

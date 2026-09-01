@@ -1,5 +1,5 @@
 import { Controller, Get, Inject } from '@nestjs/common';
-import { type DevicesService } from '../devices/devices.service.js';
+import { DevicesService } from '../devices/devices.service.js';
 import { loadEnv } from '../config/env.js';
 import { JOB_QUEUE, type JobQueue } from '../queue/job-queue.js';
 import { AI_ADAPTER, type AIAdapter } from '../ai/ai-adapter.js';

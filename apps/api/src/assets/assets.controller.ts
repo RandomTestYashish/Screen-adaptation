@@ -2,7 +2,7 @@ import { Controller, Get, Header, HttpException, HttpStatus, Param, Query, Res }
 import { Throttle } from '@nestjs/throttler';
 import { loadEnv } from '../config/env.js';
 import type { Response } from 'express';
-import { type LocalAssetStore } from './asset-store.js';
+import { LocalAssetStore } from './asset-store.js';
 
 /**
  * Serves stored assets only when the request carries a valid, unexpired

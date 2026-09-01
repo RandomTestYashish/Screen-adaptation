@@ -19,6 +19,18 @@ module.exports = {
   },
   overrides: [
     {
+      /*
+       * NestJS resolves constructor dependencies from the runtime metadata
+       * `emitDecoratorMetadata` produces, which needs a real import binding for
+       * every injected class. `consistent-type-imports` cannot see that a class
+       * is used as a DI token and will rewrite the import to `import type`,
+       * erasing it and breaking dependency injection at boot. The rule is
+       * therefore off for the API, where it is actively unsafe.
+       */
+      files: ['apps/api/**/*.ts', 'apps/worker/**/*.ts'],
+      rules: { '@typescript-eslint/consistent-type-imports': 'off' },
+    },
+    {
       // Scripts and tests legitimately log and assert loosely.
       files: ['**/scripts/**', '**/__tests__/**', 'e2e/**'],
       rules: { 'no-console': 'off', '@typescript-eslint/no-non-null-assertion': 'off' },
