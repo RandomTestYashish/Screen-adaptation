@@ -127,6 +127,8 @@ export function buildRasterDesign(input: RasterImportInput): DesignDocument {
     sourceId: source.id,
     sourceHash: source.hash,
     sourceKind: 'raster',
+    // No reconstruction ran, so there is nothing to reflow.
+    structure: 'flat',
     irVersion: DESIGN_IR_VERSION,
     parserVersion: PARSER_VERSION,
     createdAt: new Date().toISOString(),

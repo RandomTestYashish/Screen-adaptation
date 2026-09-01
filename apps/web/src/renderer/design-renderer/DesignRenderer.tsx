@@ -126,22 +126,54 @@ function NodeView({ node, byId, assetUrl, devMode, selectedNodeId, onSelect, vis
 
   if (node.type === 'image') {
     const url = assetUrl(node.assetId);
-    return (
-      <div {...common}>
-        {url && (
+    if (!url) return <div {...common} />;
+
+    /*
+     * A cropped image node shows one region of the source bitmap.
+     *
+     * This is how a reconstructed screenshot stays pixel-faithful: each region
+     * the analysis could not confidently redraw - artwork, glyphs, anything
+     * detailed - renders as its own slice of the designer's original file,
+     * positioned by the layout. Scaling the slice so the crop window fills the
+     * node reproduces exactly those pixels and nothing else.
+     */
+    if (node.crop) {
+      const { crop } = node;
+      const scaleX = crop.width > 0 ? 1 / crop.width : 1;
+      const scaleY = crop.height > 0 ? 1 / crop.height : 1;
+      return (
+        <div {...common} style={{ ...style, overflow: 'hidden' }}>
           <img
             src={url}
             alt={node.altText ?? node.name}
-            // Required for image export: without it the browser taints the
-            // canvas and the capture silently fails.
             crossOrigin="anonymous"
-            className={styles.image}
+            className={styles.cropped}
             style={{
-              objectFit: node.scaleMode === 'fit' ? 'contain' : node.scaleMode === 'stretch' ? 'fill' : 'cover',
+              width: `${scaleX * 100}%`,
+              height: `${scaleY * 100}%`,
+              left: `${-crop.x * scaleX * 100}%`,
+              top: `${-crop.y * scaleY * 100}%`,
             }}
             draggable={false}
           />
-        )}
+        </div>
+      );
+    }
+
+    return (
+      <div {...common}>
+        <img
+          src={url}
+          alt={node.altText ?? node.name}
+          // Required for image export: without it the browser taints the
+          // canvas and the capture silently fails.
+          crossOrigin="anonymous"
+          className={styles.image}
+          style={{
+            objectFit: node.scaleMode === 'fit' ? 'contain' : node.scaleMode === 'stretch' ? 'fill' : 'cover',
+          }}
+          draggable={false}
+        />
       </div>
     );
   }

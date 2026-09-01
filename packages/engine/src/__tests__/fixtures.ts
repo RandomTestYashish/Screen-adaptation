@@ -148,6 +148,7 @@ export function structuredDesign(screen = structuredScreen()): DesignDocument {
     sourceId: 'source-1',
     sourceHash: 'a'.repeat(64),
     sourceKind: 'figma',
+    structure: 'figma',
     irVersion: DESIGN_IR_VERSION,
     parserVersion: PARSER_VERSION,
     createdAt: NOW,

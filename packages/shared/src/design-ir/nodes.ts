@@ -86,6 +86,34 @@ const BaseNodeFields = {
   provenance: ProvenanceSchema,
   /** Per-field measurement quality, keyed by IR field path (e.g. "padding.left"). */
   fieldQuality: z.record(z.string(), ProvenanceSchema).default({}),
+  /**
+   * Reconstruction metadata for nodes derived from a bitmap.
+   *
+   * Purely descriptive: the renderer ignores it entirely. It exists so Dev Mode
+   * can report the measured typography of a text region whose *pixels* are
+   * still the designer's own, and so AI Mode can explain why a region was
+   * classified as it was (spec sections 15 and 18).
+   */
+  analysis: z
+    .object({
+      componentType: z.string(),
+      semanticRole: z.string(),
+      renderStrategy: z.enum(['RECONSTRUCT', 'PRESERVE_RASTER', 'HYBRID']),
+      confidence: z.number().min(0).max(1),
+      reasons: z.array(z.string()).default([]),
+      /** Measured type metrics, when the region is text. */
+      typography: z
+        .object({
+          fontSize: LogicalPx.positive(),
+          fontWeight: z.number().int(),
+          lineHeight: LogicalPx.positive(),
+          color: ColorSchema,
+          align: z.enum(['left', 'center', 'right']),
+          lineCount: z.number().int().nonnegative(),
+        })
+        .optional(),
+    })
+    .optional(),
 };
 
 export type DesignNode =

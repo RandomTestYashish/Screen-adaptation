@@ -50,7 +50,7 @@ export class SourcesController {
     const project = await this.repository.getProject(projectId);
     if (!project) throw new BadRequestException(`Unknown project "${projectId}".`);
 
-    const { source, design, warnings } = await this.imports.uploadRaster({
+    const { source, design, warnings, dna } = await this.imports.uploadRaster({
       projectId,
       filename: file.originalname,
       mimeType: file.mimetype,
@@ -63,6 +63,7 @@ export class SourcesController {
       design,
       defaultDeviceId: this.devices.defaultFor(screen.frame.width).id,
       warnings,
+      ...(dna ? { dna } : {}),
     });
   }
 

@@ -79,6 +79,17 @@ export const DesignDocumentSchema = z.object({
   sourceId: z.string(),
   sourceHash: z.string(),
   sourceKind: SourceKindSchema,
+  /**
+   * Whether the document carries layout structure the adaptation engine can
+   * reflow.
+   *
+   * This, not `sourceKind`, decides how a design adapts. A bitmap that has been
+   * reconstructed into components reflows exactly like a Figma import; a bitmap
+   * that has not can only be scaled. Keying the decision on the source *format*
+   * was the reason an uploaded screenshot used to shrink to fit instead of
+   * revealing more or less content per viewport (spec sections 1 and 9).
+   */
+  structure: z.enum(['figma', 'reconstructed', 'flat']).default('flat'),
   irVersion: z.string(),
   parserVersion: z.string(),
   createdAt: z.string().datetime(),

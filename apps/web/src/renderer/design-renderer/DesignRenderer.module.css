@@ -45,3 +45,12 @@
 .fixedLayer > * {
   pointer-events: auto;
 }
+
+/* A crop window onto the source bitmap: the image is scaled so the cropped
+   region exactly fills the node, and the wrapper clips the rest. */
+.cropped {
+  position: absolute;
+  display: block;
+  max-width: none;
+  user-select: none;
+}

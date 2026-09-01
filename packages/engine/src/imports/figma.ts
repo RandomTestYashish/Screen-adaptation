@@ -529,6 +529,7 @@ export function buildFigmaDesign(input: FigmaImportInput): DesignDocument {
     sourceId: source.id,
     sourceHash: source.hash,
     sourceKind: 'figma',
+    structure: 'figma',
     irVersion: DESIGN_IR_VERSION,
     parserVersion: PARSER_VERSION,
     createdAt: new Date().toISOString(),

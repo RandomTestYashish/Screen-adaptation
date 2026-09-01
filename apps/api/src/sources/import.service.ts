@@ -11,7 +11,15 @@ import {
   type DesignDocument,
   type SourceDocument,
 } from '@dae/shared';
-import { buildFigmaDesign, buildRasterDesign, detectAnchors, type FigmaNode } from '@dae/engine';
+import {
+  buildFigmaDesign,
+  buildRasterDesign,
+  detectAnchors,
+  reconstructRaster,
+  type DesignDna,
+  type FigmaNode,
+} from '@dae/engine';
+import { decodeForAnalysis } from './pixels.js';
 import { REPOSITORY, type Repository } from '../storage/repository.js';
 import { LocalAssetStore } from '../assets/asset-store.js';
 import { AI_ADAPTER, type AIAdapter } from '../ai/ai-adapter.js';
@@ -28,6 +36,8 @@ export interface UploadResult {
   source: SourceDocument;
   design: DesignDocument;
   warnings: string[];
+  /** Present when a bitmap was reconstructed into components. */
+  dna?: DesignDna;
 }
 
 @Injectable()
@@ -138,27 +148,45 @@ export class ImportService {
 
     await this.repository.putSource(source);
 
-    const analysis = await this.ai.analyseRaster({
-      imageData: input.data,
-      mimeType: input.mimeType,
-      width: source.width,
-      height: source.height,
-    });
-    if (!analysis) {
-      const reason = this.ai.unavailableReason();
-      if (reason) warnings.push(reason);
+    /*
+     * Reconstruct the bitmap into components.
+     *
+     * This is what lets an uploaded screenshot adapt to a viewport instead of
+     * being scaled to fit it: without structure there is nothing to reflow, so
+     * a narrower device could only shrink the whole design (spec sections 1
+     * and 4).
+     */
+    let design: DesignDocument;
+    let dna: DesignDna | undefined;
+    try {
+      const { image, analysisScale } = await decodeForAnalysis(input.data);
+      const reconstruction = reconstructRaster({
+        source,
+        image,
+        scale: (source.width / metadata.width) * analysisScale,
+      });
+      design = reconstruction.design;
+      dna = reconstruction.dna;
+      warnings.push(...reconstruction.warnings);
+      this.logger.log(
+        `Reconstructed ${source.id}: ${reconstruction.regions.length} regions, ${Math.round(reconstruction.structuralCoverage * 100)}% structural coverage, ${Math.round(reconstruction.timings.totalMs)}ms`,
+      );
+    } catch (error) {
+      // Reconstruction is an enhancement, not a gate. If it fails the bitmap
+      // still imports - it simply adapts by scaling, and the reason is stated.
+      this.logger.warn(`Reconstruction failed for ${source.id}: ${(error as Error).message}`);
+      warnings.push(
+        `The design could not be reconstructed into components (${(error as Error).message}), so it adapts by proportional scaling rather than reflowing.`,
+      );
+      design = buildRasterDesign({ source });
     }
 
-    const design = buildRasterDesign({
-      source,
-      ...(analysis ? { analysis: { regions: analysis.regions, provider: analysis.provider, model: analysis.model } } : {}),
-    });
     await this.repository.putDesign(design);
 
     this.logger.log(
       `Imported raster ${source.id}: ${source.width}x${source.height} logical, ${metadata.width}x${metadata.height} physical`,
     );
-    return { source, design, warnings };
+    return { source, design, warnings, ...(dna ? { dna } : {}) };
   }
 
   /**

@@ -26,7 +26,7 @@ import {
   type UploadSourceResponseT,
   type ValidationRunResponseT,
 } from '@dae/shared';
-import { buildRasterDesign, planAdaptation, runValidation } from '@dae/engine';
+import { buildRasterDesign, planAdaptation, reconstructRaster, runValidation, type DesignDna, type PixelData } from '@dae/engine';
 import { buildResponse, pickDefaultDevice } from '@dae/device-catalog/query';
 import catalogData from '@dae/device-catalog/catalog.json';
 import type { HealthStatus } from './api.js';
@@ -59,6 +59,7 @@ const designs = new Map<string, DesignDocument>();
 const adaptations = new Map<string, AdaptationResult>();
 const byCacheKey = new Map<string, string>();
 const assets = new Map<string, StoredAsset>();
+const dnaBySource = new Map<string, DesignDna>();
 
 export class LocalBackendError extends Error {
   constructor(message: string) {
@@ -76,6 +77,37 @@ async function readImageSize(url: string): Promise<{ width: number; height: numb
     image.src = url;
   });
   return { width: image.naturalWidth, height: image.naturalHeight };
+}
+
+/** Analysis cost is quadratic in pixels, and a 3x export adds no structure. */
+const MAX_ANALYSIS_WIDTH = 800;
+
+/**
+ * Decode to raw RGBA through a canvas.
+ *
+ * The engine's analysis takes a plain pixel buffer, so the browser can run the
+ * exact same reconstruction the server does - no service, no upload.
+ */
+async function decodeForAnalysis(url: string): Promise<{ image: PixelData; analysisScale: number }> {
+  const source = new Image();
+  await new Promise<void>((resolve, reject) => {
+    source.onload = () => resolve();
+    source.onerror = () => reject(new LocalBackendError('The file could not be decoded as an image.'));
+    source.src = url;
+  });
+
+  const width = Math.min(MAX_ANALYSIS_WIDTH, source.naturalWidth);
+  const height = Math.round((source.naturalHeight / source.naturalWidth) * width);
+
+  const canvas = document.createElement('canvas');
+  canvas.width = width;
+  canvas.height = height;
+  const context = canvas.getContext('2d', { willReadFrequently: true });
+  if (!context) throw new LocalBackendError('This browser could not provide a 2D canvas for analysis.');
+  context.drawImage(source, 0, 0, width, height);
+
+  const { data } = context.getImageData(0, 0, width, height);
+  return { image: { data, width, height }, analysisScale: source.naturalWidth / width };
 }
 
 /**
@@ -115,11 +147,13 @@ async function ingest(projectId: string, file: File | Blob, filename: string): P
     if (existing.projectId === projectId && existing.hash === hash) {
       const design = [...designs.values()].find((d) => d.sourceId === existing.id);
       if (design) {
+        const storedDna = dnaBySource.get(existing.id);
         return {
           source: existing,
           design,
           defaultDeviceId: pickDefaultDevice(catalog, primaryScreen(design).frame.width).id,
           warnings: ['This file was already imported; the existing source was reused.'],
+          ...(storedDna ? { dna: storedDna } : {}),
         };
       }
     }
@@ -157,12 +191,25 @@ async function ingest(projectId: string, file: File | Blob, filename: string): P
   });
   sources.set(source.id, source);
 
-  const design = buildRasterDesign({ source });
-  designs.set(design.id, design);
+  const warnings = ['Running fully in the browser: no design leaves this page.'];
 
-  const warnings = [
-    'Running fully in the browser: no design leaves this page, and no AI provider is configured, so the bitmap was imported as immutable artwork with no structural analysis.',
-  ];
+  let design: DesignDocument;
+  let dna: DesignDna | undefined;
+  try {
+    const { image, analysisScale } = await decodeForAnalysis(dataUrl);
+    const reconstruction = reconstructRaster({ source, image, scale: analysisScale });
+    design = reconstruction.design;
+    dna = reconstruction.dna;
+    warnings.push(...reconstruction.warnings);
+  } catch (error) {
+    // Reconstruction is an enhancement, not a gate.
+    warnings.push(
+      `The design could not be reconstructed into components (${(error as Error).message}), so it adapts by proportional scaling rather than reflowing.`,
+    );
+    design = buildRasterDesign({ source });
+  }
+  designs.set(design.id, design);
+  if (dna) dnaBySource.set(source.id, dna);
   if (width > 800) {
     warnings.push(
       `The export is ${width}px wide and the browser reports no DPI, so it was treated as 1x. If this is a 2x or 3x export, the logical width would be ${Math.round(width / 2)}px or ${Math.round(width / 3)}px.`,
@@ -174,6 +221,7 @@ async function ingest(projectId: string, file: File | Blob, filename: string): P
     design,
     defaultDeviceId: pickDefaultDevice(catalog, primaryScreen(design).frame.width).id,
     warnings,
+    ...(dna ? { dna } : {}),
   };
 }
 

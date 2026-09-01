@@ -28,6 +28,12 @@ export const UploadSourceResponse = z.object({
   /** Device chosen automatically so the designer sees a preview immediately. */
   defaultDeviceId: z.string(),
   warnings: z.array(z.string()).default([]),
+  /**
+   * The design system measured from the source, when a bitmap was
+   * reconstructed. Passed through as-is: the engine owns its shape, and
+   * restating it here would give the two definitions room to drift.
+   */
+  dna: z.unknown().optional(),
 });
 export type UploadSourceResponseT = z.infer<typeof UploadSourceResponse>;
 

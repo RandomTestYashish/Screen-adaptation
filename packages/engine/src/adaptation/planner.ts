@@ -94,21 +94,39 @@ export function chooseStrategy(
       reason: `Target viewport is ${targetWidth}px wide, identical to the source frame. No scaling or reflow is required; only device chrome is layered on top.`,
     };
   }
-  if (design.sourceKind === 'raster') {
+
+  /*
+   * The decision is about *structure*, not source format.
+   *
+   * A reconstructed bitmap reflows exactly like a Figma import: type keeps its
+   * measured size, spacing keeps its measured value, and the width difference
+   * is absorbed by each element's own constraint. Scaling it instead would
+   * shrink the whole design to fit, which is the behaviour this engine exists
+   * to avoid (spec sections 1, 10 and 11).
+   */
+  const hasStructure = design.structure === 'figma' || design.structure === 'reconstructed';
+
+  if (!hasStructure) {
     return {
       strategy: 'uniform-scale',
-      reason: `The source is an immutable bitmap, so its internal structure cannot be reflowed without redrawing it. The whole document is scaled proportionally by ${round(targetWidth / screen.frame.width, 4)} to fit ${targetWidth}px, preserving every proportion and never cropping.`,
+      reason: `The source is a bitmap with no reconstructed structure, so there is nothing to reflow. The whole document is scaled proportionally by ${round(targetWidth / screen.frame.width, 4)} to fit ${targetWidth}px. Every proportion is preserved and nothing is cropped, but the design's absolute type size changes with it.`,
     };
   }
+
   if (!options.allowStructuralReflow) {
     return {
       strategy: 'uniform-scale',
       reason: 'Structural reflow is disabled for this adaptation, so the design is scaled proportionally instead.',
     };
   }
+
+  const widthDelta = round(targetWidth - screen.frame.width, 1);
   return {
     strategy: 'structural-reflow',
-    reason: `The source carries real structure (constraints and Auto Layout), so the design keeps its original type sizes and spacing and the ${round(targetWidth - screen.frame.width, 1)}px width difference is absorbed by the source's own layout rules.`,
+    reason:
+      design.structure === 'reconstructed'
+        ? `The bitmap was reconstructed into components, so the design keeps its measured type sizes and spacing and the ${widthDelta}px width difference is absorbed by each element's own constraint. The document keeps its full height; how much of it is visible is decided by the device's viewport, not by scaling the design down to fit.`
+        : `The source carries real structure (constraints and Auto Layout), so the design keeps its original type sizes and spacing and the ${widthDelta}px width difference is absorbed by the source's own layout rules.`,
   };
 }
 
