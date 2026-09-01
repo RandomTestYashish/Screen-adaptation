@@ -1,0 +1,36 @@
+{
+  "name": "device-adaptation-engine",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Device Adaptation + Real Device Preview Engine - upload one mobile design, render and validate it across a data-driven device catalog.",
+  "license": "MIT",
+  "engines": { "node": ">=20.11" },
+  "packageManager": "pnpm@9.12.3",
+  "scripts": {
+    "build": "pnpm -r --filter \"./packages/*\" build && pnpm --filter @dae/api build && pnpm --filter @dae/web build",
+    "dev": "pnpm -r --parallel --filter @dae/api --filter @dae/web dev",
+    "dev:api": "pnpm --filter @dae/api dev",
+    "dev:web": "pnpm --filter @dae/web dev",
+    "dev:worker": "pnpm --filter @dae/worker dev",
+    "typecheck": "tsc -b tsconfig.build.json",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:e2e": "playwright test",
+    "lint": "eslint . --ext .ts,.tsx",
+    "format": "prettier --write .",
+    "catalog:sync": "pnpm --filter @dae/device-catalog sync",
+    "catalog:verify": "pnpm --filter @dae/device-catalog verify",
+    "db:generate": "pnpm --filter @dae/api prisma:generate",
+    "db:migrate": "pnpm --filter @dae/api prisma:migrate"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.49.1",
+    "@types/node": "22.10.5",
+    "@typescript-eslint/eslint-plugin": "8.19.1",
+    "@typescript-eslint/parser": "8.19.1",
+    "eslint": "8.57.1",
+    "prettier": "3.4.2",
+    "typescript": "5.7.3",
+    "vitest": "2.1.8"
+  }
+}
