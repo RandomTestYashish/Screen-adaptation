@@ -94,7 +94,9 @@ These are enforced in code, not just documented.
 | --- | --- |
 | The source is never modified or overwritten | `SourceDocument` is write-once; both repository drivers reject an overwrite. Re-importing identical bytes reuses the existing source. |
 | The design is never redesigned or restyled | The adaptation engine has no transform that can change a font, colour, weight or hierarchy. The typography check asserts this invariant on every run and fails if it is ever violated. |
-| A bitmap stays the authoritative artwork | Raster sources render as exactly one image node. Any CV/OCR output lands in a separate `analysisOverlay` the renderer never draws. |
+| A bitmap stays the authoritative artwork | The upload is never overwritten and remains the visual reference. Reconstruction builds a *parallel* representation; anything the analysis cannot describe confidently renders as a crop of the original file rather than an invention. |
+| Nothing is fabricated | A font family cannot be measured from a bitmap, so it is reported as unknown and text is preserved as original pixels rather than re-set. The same applies to DPI, PPI, safe areas and device dimensions. |
+| A spacing grid is detected, never imposed | Grid detection rejects a candidate whose fit is no better than chance, so a design that does not use an 8px rhythm is not reported as if it did. |
 | Device chrome never touches the design | Chrome is a sibling rendering layer. Toggling it cannot change the design layer's geometry — there is an end-to-end test asserting the box is byte-identical before and after. |
 | Long pages are never cropped to the frame | Scroll extent is computed from the full document and the scroll-completeness check fails if content would be unreachable. |
 | Measurements are never invented | Every value carries `detected`, `inferred` or `unavailable`, end to end from the IR through to the inspector and validation panel. |
@@ -116,8 +118,31 @@ correctly:
 | Strategy | When | What happens |
 | --- | --- | --- |
 | `identity` | Target viewport width equals the source frame width | Nothing is scaled or reflowed. Only chrome is layered on top. Preservation 100/100. |
-| `uniform-scale` | The source is an immutable bitmap | The whole document scales proportionally. Every proportion, type size and spacing keeps its original relationship, and nothing is cropped. |
-| `structural-reflow` | The source carries real structure (Figma constraints, Auto Layout) | Type sizes, weights, colours and spacing are unchanged. The width difference is absorbed by the source's own layout rules. |
+| `uniform-scale` | The document carries no structure to reflow | The whole document scales proportionally. Every proportion, type size and spacing keeps its original relationship, and nothing is cropped. |
+| `structural-reflow` | The document carries real structure — Figma constraints and Auto Layout, or a reconstruction of an uploaded bitmap | Type sizes, weights, colours and spacing are unchanged. The width difference is absorbed by the source's own layout rules. |
+
+The choice is keyed on whether the *document* has structure, not on what format
+it arrived in. That distinction is the whole point: a screenshot that has been
+reconstructed into components reflows exactly like a Figma import, so changing
+the device changes **how much of the page you can see**, not how big the design
+is drawn.
+
+### Viewport adaptation, not image scaling
+
+A larger phone shows more of the page. A smaller phone shows less. The type
+stays the same size on both.
+
+| Device | Viewport | Strategy | Scale | Document height | Rows visible |
+| --- | --- | --- | --- | --- | --- |
+| iPhone SE | 375×667 | `identity` | 1 | 2400 | 2 of 8 |
+| Galaxy S24 | 360×772 | `structural-reflow` | 1 | 2424 | 2 of 8 |
+| iPhone 16 Pro | 402×874 | `structural-reflow` | 1 | 2434 | 3 of 8 |
+| iPhone 16 Pro Max | 440×956 | `structural-reflow` | 1 | 2434 | 3 of 8 |
+| Pixel 8 Pro | 448×997 | `structural-reflow` | 1 | 2424 | 3 of 8 |
+
+The document height barely moves across a 375→448px range — the small
+differences are safe-area clearance, not scaling. A design scaled to fit would
+be ~19% taller on the Pixel than on the SE.
 
 ### The safe-area subtlety
 
@@ -142,7 +167,49 @@ low-confidence assumption is visible rather than silent.
 An `AdaptationPlan` records each transformation with source node, target node,
 type, before/after values, a plain-language reason, a confidence, and its blast
 radius — `none`, `chrome-only`, `layout` or `pixels`. Chrome-only work never
-costs preservation score, because it does not touch the designer's pixels.
+costs the adaptation fidelity score, because it does not touch the designer's
+pixels.
+
+---
+
+## Reconstruction: turning a screenshot into structure
+
+An uploaded PNG or JPEG is analysed into a **hybrid** representation. Regions
+the analysis understands become real nodes with measured colour, corner radius
+and type geometry; everything else becomes an image node holding a normalized
+crop of the original bitmap.
+
+| Strategy | Meaning |
+| --- | --- |
+| `RECONSTRUCT` | Redrawn from measured fill, radius and type geometry. Reflows. |
+| `HYBRID` | Original pixels inside a measured, reflowable frame. |
+| `PRESERVE_RASTER` | The designer's own pixels, cropped and placed. Exact. |
+
+Text is *always* preserved as pixels, never re-set, because a bitmap cannot tell
+us its font family. That is a deliberate limitation, stated in the report,
+rather than a default font quietly substituted.
+
+The analysis is deterministic computer vision, not a model call: OKLab
+perceptual colour distance, projection profiles, connected components, ink-
+profile text-line detection, baseline detection, stroke-thickness weight
+estimation, corner-radius diagonal walks and a gradient monotonicity test. UI
+screenshots are flat-shaded and axis-aligned, which is exactly the case
+classical segmentation handles well — and it runs offline, identically in the
+browser and on the server, and is testable.
+
+### Design DNA
+
+Reconstruction also extracts the design system the source is actually built
+from: a clustered palette with roles, a type scale, the spacing rhythm, corner
+radii and the page's edge margin. Every entry carries a `measurementType` —
+`DETECTED`, `INFERRED`, `DEVICE_DATABASE`, `USER_DEFINED` or `UNKNOWN` — so a
+measurement is never confused with an assumption. `UNKNOWN` is a legitimate
+answer and is preferred over a plausible-looking guess.
+
+**AI Mode** shows what the analysis concluded and how sure it is: the render
+strategy tally, the components it identified, and the reasons behind the
+lowest-confidence classifications. It is kept separate from Dev Mode, which
+answers a different question — Dev Mode measures, AI Mode explains.
 
 ---
 
@@ -161,6 +228,21 @@ content — re-renders, and **validates again**. The second pass is mandatory an
 always runs, so the report always describes a verified end state.
 
 The engine never changes colour, type, hierarchy or content to satisfy a check.
+
+### Two fidelity scores, never merged
+
+Fidelity is two independent questions, and the product reports them separately:
+
+| Score | Question | Fixed by |
+| --- | --- | --- |
+| **Source fidelity** | Does our representation of the upload match the upload? | Improving the analysis |
+| **Adaptation fidelity** | Does the device render preserve the design we hold? | Relaxing a layout rule |
+
+Merging them would hide both failure modes — a bad reconstruction disappearing
+behind a faithful adaptation, and an aggressive adaptation excused by a good
+reconstruction. Each carries its own confidence, `measurementType` and explicit
+limitations, so a high score at low confidence reads as the weaker claim it is.
+There is deliberately no combined number.
 
 ### Honest results
 
@@ -201,7 +283,7 @@ punch-hole would visibly contradict.
 
 Every field carries its own source, confidence and reference; the device drawer
 shows all of them. The headline `overallConfidence` is the worst confidence
-among the geometry-critical fields, and it caps the preservation score.
+among the geometry-critical fields, and it caps the adaptation fidelity score.
 
 Units are explicit throughout: everything is **logical (CSS) pixels** except
 `physicalResolution` and `ppi`, with `physicalPx = logicalPx × devicePixelRatio`
@@ -210,6 +292,26 @@ as the only sanctioned conversion.
 The seed catalog ships 34 profiles spanning 360, 375, 390, 393, 402, 412, 428,
 430, 440 and 448px logical widths, both Android navigation modes, and DPRs from
 2 to 3.75.
+
+---
+
+## Comparing devices
+
+Panes are labelled A, B, C by position and start **neutral**: adding a second
+device does not select it, and clicking blank canvas (or pressing Escape)
+returns to neutral. Nothing is highlighted unless someone actually picked it.
+
+**Linked scroll** syncs normalized progress, not raw `scrollTop`. Two devices
+reflow to different document heights, so copying a pixel offset would drift
+further apart the further down the page you go and the bottoms would never line
+up.
+
+The **device overlay** draws viewport bounds, safe-area bands with their named
+insets, content margin guides and a geometry readout — as its own layer above
+the design, so it never alters what it is measuring.
+
+The comparison exports as a single image with each pane labelled and its
+viewport size printed, and its provenance names every device it contains.
 
 ---
 
@@ -243,6 +345,9 @@ is unchanged before and after.
   there, its licence and its official source
 - [`docs/DEVICE-DATA.md`](docs/DEVICE-DATA.md) — data sources, the confidence
   model, and how to add a device
+- [`docs/REQUIREMENT-MAP.md`](docs/REQUIREMENT-MAP.md) — every enhancement
+  requirement mapped to what already existed, what was enhanced, what was
+  refactored and what is missing
 - [`.env.example`](.env.example) — every environment variable, documented
 
 ## Known limitations
@@ -258,9 +363,18 @@ These are real and visible in the product, not hidden here.
 - **Pixel comparison requires a capture, and only for raster sources.**
   Comparing a structured Figma design against a screenshot would measure the
   renderer, not the adaptation, so it is skipped with that reason.
-- **Image export covers raster sources.** The browser cannot rasterise arbitrary
-  DOM without a third-party library; for structured sources the export reports
-  that plainly instead of producing a blank file. JSON exports are unaffected.
+- **Image export redraws the DOM on a canvas.** It reproduces fills, corner
+  radii, crops, borders, clipping, text and the gradients this app emits.
+  Anything outside that — an SVG vector, an unparsed background image — is named
+  in the export's status message rather than dropped silently.
+- **Font family cannot be recovered from a bitmap.** Text in a reconstructed
+  screenshot is preserved as original pixels, so it looks correct but is not
+  editable, and the type scale reports geometry (size, weight, line height)
+  rather than a family name.
+- **Reconstruction confidence varies with the source.** Flat-shaded, axis-
+  aligned UI reconstructs well; photographic or heavily textured artwork is
+  classified `PRESERVE_RASTER` and kept as pixels. The source fidelity score and
+  AI Mode both report which is which.
 - **Android insets vary by OEM, skin and OS version.** They are carried at
   `medium` confidence with an explicit caveat rather than presented as exact.
 - **Newly announced devices** inherit geometry from their closest sibling until

@@ -12,6 +12,7 @@ packages/
     device/               DeviceProfile, attribution and confidence model
     adaptation/           AdaptationPlan, TransformRecord, PreservationScore
     validation/           ValidationReport, checks, findings, metadata rows
+                          fidelity: the source/adaptation pair, MeasurementType
     api/                  Request/response contracts used by BOTH sides
     util/                 versions (cache keys), ids, stable hashing
 
@@ -25,7 +26,16 @@ packages/
   engine/                 Pure, deterministic, runtime-agnostic
     layout/               geometry helpers, browser-free text measurement
     imports/              raster + figma → Design IR, anchor detection
+    reconstruction/       bitmap → semantic components (deterministic CV)
+      pixels              OKLab colour distance, modal colour, uniformity
+      segmentation        background, bands, connected components, radii
+      text-detection      ink profiles, baselines, stroke-weight estimation
+      design-dna          palette, type scale, spacing rhythm, grid, radii
+      classify            component type + RECONSTRUCT/HYBRID/PRESERVE_RASTER
+      reconstruct         orchestrator producing hybrid IR
+      fidelity            source-fidelity scoring
     adaptation/           planner, constraint rules, safe-area inference
+                          fidelity: adaptation-fidelity scoring
     validation/           14 checks, two-pass runner, metadata rows
 
 apps/
@@ -43,11 +53,13 @@ apps/
     prisma/schema.prisma  PostgreSQL schema
 
   web/                    React + TypeScript + Vite
-    renderer/             The five rendering layers
-    components/           workspace, device-explorer, dev-mode, validation-panel, upload
+    renderer/             The five rendering layers, plus the device overlay
+    components/           workspace, device-explorer, dev-mode, ai-mode,
+                          validation-panel, upload
     state/                Zustand workspace store
     hooks/                render → validate orchestration
-    lib/                  typed API client, preview capture
+    lib/                  typed API client, DOM-to-canvas capture,
+                          in-browser backend for the standalone build
 
   worker/                 Scheduled device-catalog ingestion; BullMQ consumers
 ```
@@ -71,8 +83,16 @@ framework along.
   PNG/JPEG/WebP ─┤            │
                  │  Import    ├─► SourceDocument (immutable, hashed, write-once)
   Figma frame ───┤            │        │
-                 └────────────┘        ▼
+                 └────────────┘        │
+                                       ▼
+                          Reconstruction (raster only)
+                          background → segmentation → text
+                          → classification → Design DNA
+                                       │
+                                       ▼
                                   Design IR ──► cached
+                                  structure: figma | reconstructed | flat
+                                  sourceFidelity
                                        │
         DeviceProfile (normalized) ────┤
                                        ▼
@@ -97,6 +117,14 @@ Two properties hold throughout:
 2. **The design is never rasterised server-side for the preview.** The browser
    renders the Design IR (or the original bitmap) directly, so a structured
    Figma design is never flattened into an image.
+3. **`structure`, not `sourceKind`, decides how a design adapts.** A bitmap that
+   has been reconstructed into components reflows exactly like a Figma import; a
+   bitmap that has not can only be scaled. Keying the decision on the source
+   *format* was the reason an uploaded screenshot used to shrink to fit instead
+   of revealing more or less content per viewport.
+4. **Reconstruction never replaces the reference.** It is a parallel
+   representation. Regions it cannot describe confidently render as normalized
+   crops of the original file, so those pixels are the designer's own.
 
 ## The five rendering layers
 
@@ -108,7 +136,7 @@ Each is an independent sibling. None can modify another.
 | B | `PlatformChrome` | Status bar, notch / Dynamic Island / punch-hole, home indicator, Android gesture or three-button navigation, optional keyboard. `pointer-events: none`. |
 | C | `SafeAreaOverlay` | Inset visualisation, distinguishing what the source already reserved from what this device adds. |
 | D | `DesignRenderer` | **The only layer carrying the designer's pixels.** A real scroll container holds the full document; fixed elements render outside it, pinned to the viewport. |
-| E | `InspectionOverlay` | Dev Mode boxes, padding bands, distance guides, validation finding regions. |
+| E | `InspectionOverlay` | Dev Mode boxes, padding bands, distance guides, validation finding regions. `DeviceOverlay` — viewport bounds, safe-area bands and margin guides — is part of this layer and is off by default. |
 
 Layer D virtualises subtrees outside a windowed range while keeping the document
 at its full height, so scroll geometry stays exact on very long pages.
