@@ -55,8 +55,20 @@ export const ScreenSchema = z.object({
   scrollHeightProvenance: ProvenanceSchema,
   background: ColorSchema.optional(),
   root: DesignNodeSchema,
+  /**
+   * Non-authoritative structure derived from a raster source by CV/OCR.
+   *
+   * The renderer never draws this: it draws `root` only. The overlay exists so
+   * Dev Mode can report measurements and validation can reason about text and
+   * regions, without the analysis ever replacing the original artwork
+   * (spec section 16).
+   */
+  analysisOverlay: DesignNodeSchema.optional(),
 });
-export type Screen = Omit<z.infer<typeof ScreenSchema>, 'root'> & { root: DesignNode };
+export type Screen = Omit<z.infer<typeof ScreenSchema>, 'root' | 'analysisOverlay'> & {
+  root: DesignNode;
+  analysisOverlay?: DesignNode;
+};
 
 /**
  * The normalized Design IR - the canonical model used by adaptation,

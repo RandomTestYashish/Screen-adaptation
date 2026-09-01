@@ -106,6 +106,15 @@ export const AdaptationPlanSchema = z.object({
   /** Viewport height actually available to content after chrome/keyboard. */
   usableViewport: z.object({ width: LogicalPx, height: LogicalPx }),
   safeArea: EdgeInsetsSchema,
+  /**
+   * The safe area the *source* design is judged to already reserve, inferred by
+   * matching the source frame against the device catalog. The engine applies
+   * only the difference between this and `safeArea`, so a design authored on a
+   * notched artboard is never pushed down twice.
+   */
+  assumedSourceSafeArea: EdgeInsetsSchema,
+  sourceSafeAreaBasis: z.enum(['exact-device-match', 'width-match', 'assumed-zero']),
+  sourceSafeAreaConfidence: z.number().min(0).max(1),
   /** Uniform scale applied to the design. 1 means untouched. */
   scale: z.number().positive(),
   /** Content bounds of the adapted document, in target logical px. */
