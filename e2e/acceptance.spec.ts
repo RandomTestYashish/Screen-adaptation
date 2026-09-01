@@ -17,7 +17,9 @@ test.describe('acceptance scenario', () => {
     // 2-3. The source is preserved and its real dimensions are reported.
     const summary = page.getByText('Source preserved');
     await expect(summary).toBeVisible({ timeout: 30_000 });
-    await expect(page.getByText('375x813 logical')).toBeVisible();
+    // The authored frame is the whole document, not a viewport: how much of it
+    // is visible is the device's business (spec section 9).
+    await expect(page.getByText('375x2400 logical')).toBeVisible();
     await expect(page.getByText('scroll height 2400px')).toBeVisible();
 
     // 4-6. A default device profile opens immediately and the design renders
@@ -78,7 +80,7 @@ test.describe('acceptance scenario', () => {
     const before = await design.evaluate((element) => element.getBoundingClientRect().width);
 
     // 11. Dev Mode is off by default and opt-in.
-    const devToggle = page.getByLabel('Dev Mode');
+    const devToggle = page.getByLabel('Dev', { exact: true });
     await expect(devToggle).not.toBeChecked();
     await devToggle.check();
 
@@ -136,16 +138,25 @@ test.describe('acceptance scenario', () => {
 
     // 17. Export produces the selected render and a validation report.
     const opened: string[] = [];
-    context.on('page', (popup) => {
-      opened.push(popup.url());
-      void popup.close();
-    });
+    const exports: [string, string][] = [
+      ['Export viewport', 'viewport-image'],
+      ['Export full length', 'full-length-image'],
+      ['Export report (JSON)', 'validation-report'],
+      ['Export device data', 'device-metadata'],
+    ];
 
-    for (const label of ['Export viewport', 'Export full length', 'Export report (JSON)', 'Export device data']) {
+    for (const [label, kind] of exports) {
+      // Wait for the tab the export opens, so the next click cannot race ahead
+      // of the previous artefact and make the count look short.
+      const popupPromise = context.waitForEvent('page');
       await panel.getByRole('button', { name: label }).click();
-      await expect(page.locator('p[role="status"]').last()).toContainText('with full provenance', {
-        timeout: 20_000,
-      });
+      const popup = await popupPromise;
+      opened.push(popup.url());
+      await popup.close();
+      await expect(page.locator('p[role="status"]').last()).toContainText(
+        `Exported ${kind}`,
+        { timeout: 20_000 },
+      );
     }
 
     // Every export is served through a signed, expiring URL.

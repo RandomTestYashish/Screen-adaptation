@@ -45,11 +45,22 @@ export class ExportsController {
     const source = await this.repository.getSource(design.sourceId);
     if (!source) throw new NotFoundException(`Source "${design.sourceId}" is missing`);
 
+    // A compare export shows several devices, so its provenance names all of
+    // them. Attributing the image to one device would misdescribe it.
+    const comparedDeviceIds: string[] = [];
+    if (parsed.kind === 'compare-image') {
+      for (const planId of parsed.comparedPlanIds ?? [adaptation.plan.id]) {
+        const other = await this.adaptations.get(planId);
+        comparedDeviceIds.push(other.plan.deviceId);
+      }
+    }
+
     const provenance = {
       sourceId: source.id,
       sourceHash: source.hash,
       adaptationPlanId: adaptation.plan.id,
       deviceId: device.id,
+      ...(comparedDeviceIds.length > 0 ? { deviceIds: comparedDeviceIds } : {}),
       engineVersion: adaptation.plan.engineVersion,
       deviceCatalogVersion: adaptation.plan.deviceCatalogVersion,
       exportedAt: new Date().toISOString(),

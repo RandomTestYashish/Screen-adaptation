@@ -128,6 +128,35 @@
   text-underline-offset: 2px;
 }
 
+.moreFilters {
+  align-self: flex-start;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--text-muted);
+  font-size: 11px;
+}
+
+.filterCount {
+  min-width: 15px;
+  padding: 0 4px;
+  border-radius: 7px;
+  background: var(--accent);
+  color: #fff;
+  font-size: 10px;
+  line-height: 15px;
+  text-align: center;
+}
+
+.advanced {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+
 .quickSection {
   flex: 0 0 auto;
   padding: 10px 14px;

@@ -53,9 +53,9 @@ test.describe('accessibility', () => {
     await expect(page.getByText('Source preserved')).toBeVisible({ timeout: 30_000 });
 
     // Spec section 26: "Make Dev Mode usable without a mouse."
-    await page.getByLabel('Dev Mode').focus();
+    await page.getByLabel('Dev', { exact: true }).focus();
     await page.keyboard.press('Space');
-    await expect(page.getByLabel('Dev Mode')).toBeChecked();
+    await expect(page.getByLabel('Dev', { exact: true })).toBeChecked();
 
     const node = page.locator('[data-testid="design-document"] [data-node-id]').first();
     await node.focus();

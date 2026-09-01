@@ -54,7 +54,7 @@ export function ReconstructionPanel({ screen, adaptation, design, dna }: Props) 
   }
 
   return (
-    <div className={styles.panel}>
+    <div className={styles.panel} data-testid="reconstruction-panel">
       <header className={styles.header}>
         <h3 className={styles.title}>Reconstruction</h3>
         <p className={styles.subtitle}>

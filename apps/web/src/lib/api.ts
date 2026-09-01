@@ -143,9 +143,10 @@ export const remoteApi = {
 
   export(input: {
     adaptationPlanId: string;
-    kind: 'viewport-image' | 'full-length-image' | 'validation-report' | 'device-metadata';
+    kind: 'viewport-image' | 'full-length-image' | 'compare-image' | 'validation-report' | 'device-metadata';
     format?: 'png' | 'jpeg' | 'webp' | 'json';
     imageDataUrl?: string;
+    comparedPlanIds?: string[];
   }): Promise<ExportResponseT> {
     return request('/exports', ExportResponse, { method: 'POST', body: JSON.stringify(input) });
   },

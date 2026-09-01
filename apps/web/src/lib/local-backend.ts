@@ -391,9 +391,10 @@ export const localBackend = {
 
   async export(input: {
     adaptationPlanId: string;
-    kind: 'viewport-image' | 'full-length-image' | 'validation-report' | 'device-metadata';
+    kind: 'viewport-image' | 'full-length-image' | 'compare-image' | 'validation-report' | 'device-metadata';
     format?: 'png' | 'jpeg' | 'webp' | 'json';
     imageDataUrl?: string;
+    comparedPlanIds?: string[];
   }): Promise<ExportResponseT> {
     const adaptation = adaptations.get(input.adaptationPlanId);
     if (!adaptation) throw new LocalBackendError(`Unknown adaptation plan "${input.adaptationPlanId}"`);
@@ -401,11 +402,18 @@ export const localBackend = {
     const source = sources.get(design.sourceId)!;
     const target = device(adaptation.plan.deviceId);
 
+    // A compare export contains several devices; naming only one would
+    // misdescribe the image.
+    const comparedDeviceIds = (input.comparedPlanIds ?? [])
+      .map((id) => adaptations.get(id)?.plan.deviceId)
+      .filter((id): id is string => Boolean(id));
+
     const provenance = {
       sourceId: source.id,
       sourceHash: source.hash,
       adaptationPlanId: adaptation.plan.id,
       deviceId: target.id,
+      ...(comparedDeviceIds.length > 0 ? { deviceIds: comparedDeviceIds } : {}),
       engineVersion: adaptation.plan.engineVersion,
       deviceCatalogVersion: adaptation.plan.deviceCatalogVersion,
       exportedAt: new Date().toISOString(),
@@ -426,7 +434,7 @@ export const localBackend = {
     } else {
       if (!input.imageDataUrl) {
         throw new LocalBackendError(
-          'Image exports capture the live preview, which is only possible for a bitmap source.',
+          'The preview could not be captured, so there is nothing to export.',
         );
       }
       payload = input.imageDataUrl;

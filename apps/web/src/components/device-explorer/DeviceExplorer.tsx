@@ -37,8 +37,16 @@ const EMPTY: Filters = {
  * device updates the preview immediately, and no device parameter is ever
  * entered by hand.
  */
+/** Filters that are not search or platform. Used for the "more filters" count. */
+const ADVANCED_KEYS = ['manufacturer', 'era', 'sizeCategory', 'minWidth', 'maxWidth', 'minDpr', 'maxDpr'] as const;
+
 export function DeviceExplorer() {
   const [filters, setFilters] = useState<Filters>(EMPTY);
+  // Everything past search and platform starts folded away. A designer looking
+  // for "the big iPhone" should not have to read a DPR range first
+  // (spec sections 19 and 20). Nothing is removed - it is one click away, and
+  // the count below makes an active advanced filter impossible to miss.
+  const [showAdvanced, setShowAdvanced] = useState(false);
   const [detailsFor, setDetailsFor] = useState<DeviceProfile>();
   const panes = useWorkspace((s) => s.panes);
   const pickingForPaneId = useWorkspace((s) => s.pickingForPaneId);
@@ -79,6 +87,8 @@ export function DeviceExplorer() {
     else addPane(device.id);
   };
 
+  const advancedCount = ADVANCED_KEYS.filter((key) => filters[key] !== '').length;
+
   const byId = useMemo(() => new Map((data?.devices ?? []).map((d) => [d.id, d])), [data]);
   const quickPicks = [
     ...favourites.map((id) => byId.get(id)).filter((d): d is DeviceProfile => Boolean(d)),
@@ -93,7 +103,13 @@ export function DeviceExplorer() {
       <header className={styles.header}>
         <h2 className={styles.heading}>
           Devices
-          {data && <span className={styles.count}>{data.total} of {data.devices.length >= data.total ? data.total : data.total}</span>}
+          {data && (
+            <span className={styles.count}>
+              {data.devices.length === data.total
+                ? `${data.total}`
+                : `${data.devices.length} of ${data.total}`}
+            </span>
+          )}
         </h2>
         {pickingForPaneId && <p className={styles.pickingHint}>Choosing a device for the new preview…</p>}
       </header>
@@ -122,95 +138,111 @@ export function DeviceExplorer() {
           ))}
         </div>
 
-        <div className={styles.filterRow}>
-          <label className={styles.selectField}>
-            <span>Manufacturer</span>
-            <select
-              value={filters.manufacturer}
-              onChange={(e) => setFilters({ ...filters, manufacturer: e.target.value })}
-            >
-              <option value="">Any</option>
-              {(data?.facets.manufacturers ?? []).map((facet) => (
-                <option key={facet.value} value={facet.value}>
-                  {facet.value} ({facet.count})
-                </option>
-              ))}
-            </select>
-          </label>
-
-          <label className={styles.selectField}>
-            <span>Era</span>
-            <select value={filters.era} onChange={(e) => setFilters({ ...filters, era: e.target.value })}>
-              <option value="">Any</option>
-              {(data?.facets.eras ?? []).map((facet) => (
-                <option key={facet.value} value={facet.value}>
-                  {facet.value} ({facet.count})
-                </option>
-              ))}
-            </select>
-          </label>
-        </div>
-
-        <div className={styles.filterRow}>
-          <label className={styles.selectField}>
-            <span>Size class</span>
-            <select
-              value={filters.sizeCategory}
-              onChange={(e) => setFilters({ ...filters, sizeCategory: e.target.value as SizeCategory })}
-            >
-              <option value="">Any</option>
-              <option value="compact">Compact (≤375px)</option>
-              <option value="regular">Regular (376–412px)</option>
-              <option value="large">Large (&gt;412px)</option>
-            </select>
-          </label>
-        </div>
-
-        <div className={styles.rangeRow}>
-        <fieldset className={styles.rangeGroup}>
-          <legend>Logical width</legend>
-          <input
-            type="number"
-            placeholder={String(data?.facets.widthRange.min ?? 320)}
-            value={filters.minWidth}
-            onChange={(e) => setFilters({ ...filters, minWidth: e.target.value })}
-            aria-label="Minimum logical width"
-          />
-          <span aria-hidden>–</span>
-          <input
-            type="number"
-            placeholder={String(data?.facets.widthRange.max ?? 480)}
-            value={filters.maxWidth}
-            onChange={(e) => setFilters({ ...filters, maxWidth: e.target.value })}
-            aria-label="Maximum logical width"
-          />
-        </fieldset>
-
-        <fieldset className={styles.rangeGroup}>
-          <legend>Pixel ratio</legend>
-          <input
-            type="number"
-            step="0.125"
-            placeholder={String(data?.facets.dprRange.min ?? 2)}
-            value={filters.minDpr}
-            onChange={(e) => setFilters({ ...filters, minDpr: e.target.value })}
-            aria-label="Minimum device pixel ratio"
-          />
-          <span aria-hidden>–</span>
-          <input
-            type="number"
-            step="0.125"
-            placeholder={String(data?.facets.dprRange.max ?? 4)}
-            value={filters.maxDpr}
-            onChange={(e) => setFilters({ ...filters, maxDpr: e.target.value })}
-            aria-label="Maximum device pixel ratio"
-          />
-        </fieldset>
-        </div>
-
-        <button type="button" className={styles.clear} onClick={() => setFilters(EMPTY)}>
-          Clear filters
+        <button
+          type="button"
+          className={styles.moreFilters}
+          onClick={() => setShowAdvanced((open) => !open)}
+          aria-expanded={showAdvanced}
+        >
+          <span aria-hidden>{showAdvanced ? '▾' : '▸'}</span> More filters
+          {advancedCount > 0 && <span className={styles.filterCount}>{advancedCount}</span>}
         </button>
+
+        {showAdvanced && (
+          <div className={styles.advanced}>
+          <div className={styles.filterRow}>
+            <label className={styles.selectField}>
+              <span>Manufacturer</span>
+              <select
+                value={filters.manufacturer}
+                onChange={(e) => setFilters({ ...filters, manufacturer: e.target.value })}
+              >
+                <option value="">Any</option>
+                {(data?.facets.manufacturers ?? []).map((facet) => (
+                  <option key={facet.value} value={facet.value}>
+                    {facet.value} ({facet.count})
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label className={styles.selectField}>
+              <span>Era</span>
+              <select value={filters.era} onChange={(e) => setFilters({ ...filters, era: e.target.value })}>
+                <option value="">Any</option>
+                {(data?.facets.eras ?? []).map((facet) => (
+                  <option key={facet.value} value={facet.value}>
+                    {facet.value} ({facet.count})
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
+
+          <div className={styles.filterRow}>
+            <label className={styles.selectField}>
+              <span>Size class</span>
+              <select
+                value={filters.sizeCategory}
+                onChange={(e) => setFilters({ ...filters, sizeCategory: e.target.value as SizeCategory })}
+              >
+                <option value="">Any</option>
+                <option value="compact">Compact (≤375px)</option>
+                <option value="regular">Regular (376–412px)</option>
+                <option value="large">Large (&gt;412px)</option>
+              </select>
+            </label>
+          </div>
+
+          <div className={styles.rangeRow}>
+          <fieldset className={styles.rangeGroup}>
+            <legend>Logical width</legend>
+            <input
+              type="number"
+              placeholder={String(data?.facets.widthRange.min ?? 320)}
+              value={filters.minWidth}
+              onChange={(e) => setFilters({ ...filters, minWidth: e.target.value })}
+              aria-label="Minimum logical width"
+            />
+            <span aria-hidden>–</span>
+            <input
+              type="number"
+              placeholder={String(data?.facets.widthRange.max ?? 480)}
+              value={filters.maxWidth}
+              onChange={(e) => setFilters({ ...filters, maxWidth: e.target.value })}
+              aria-label="Maximum logical width"
+            />
+          </fieldset>
+
+          <fieldset className={styles.rangeGroup}>
+            <legend>Pixel ratio</legend>
+            <input
+              type="number"
+              step="0.125"
+              placeholder={String(data?.facets.dprRange.min ?? 2)}
+              value={filters.minDpr}
+              onChange={(e) => setFilters({ ...filters, minDpr: e.target.value })}
+              aria-label="Minimum device pixel ratio"
+            />
+            <span aria-hidden>–</span>
+            <input
+              type="number"
+              step="0.125"
+              placeholder={String(data?.facets.dprRange.max ?? 4)}
+              value={filters.maxDpr}
+              onChange={(e) => setFilters({ ...filters, maxDpr: e.target.value })}
+              aria-label="Maximum device pixel ratio"
+            />
+          </fieldset>
+          </div>
+          </div>
+        )}
+
+        {(advancedCount > 0 || filters.search !== '' || filters.platform !== '') && (
+          <button type="button" className={styles.clear} onClick={() => setFilters(EMPTY)}>
+            Clear filters
+          </button>
+        )}
       </div>
 
       {quickPicks.length > 0 && (

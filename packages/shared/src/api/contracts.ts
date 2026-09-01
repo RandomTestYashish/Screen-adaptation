@@ -137,10 +137,16 @@ export const FontAvailabilityResponse = z.object({
 
 export const ExportRequest = z.object({
   adaptationPlanId: z.string(),
-  kind: z.enum(['viewport-image', 'full-length-image', 'validation-report', 'device-metadata']),
+  kind: z.enum(['viewport-image', 'full-length-image', 'compare-image', 'validation-report', 'device-metadata']),
   format: z.enum(['png', 'jpeg', 'webp', 'json']).default('png'),
   /** Client-captured render, required for the image export kinds. */
   imageDataUrl: z.string().optional(),
+  /**
+   * Every plan shown in a compare export, in the order they appear. The
+   * provenance then names all of them; an image of two devices attributed to
+   * one would be a false record.
+   */
+  comparedPlanIds: z.array(z.string()).optional(),
   quality: z.number().min(1).max(100).default(92),
 });
 export const ExportResponse = z.object({
@@ -155,6 +161,8 @@ export const ExportResponse = z.object({
     sourceHash: z.string(),
     adaptationPlanId: z.string(),
     deviceId: z.string(),
+    /** Present on a compare export: every device the image contains. */
+    deviceIds: z.array(z.string()).optional(),
     engineVersion: z.string(),
     deviceCatalogVersion: z.string(),
     exportedAt: z.string().datetime(),

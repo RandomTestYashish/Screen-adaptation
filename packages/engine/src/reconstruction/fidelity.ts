@@ -7,6 +7,15 @@ export interface FidelityRegion {
   box: Box;
   classification: Classification;
   confidence: number;
+  /**
+   * Area inside this region that is still the original bitmap.
+   *
+   * A reconstructed card is not wholly redrawn: its text is placed as a crop of
+   * the upload, because a bitmap cannot tell us the font. Counting the whole
+   * card as "rebuilt" would understate fidelity and, worse, describe the
+   * document wrongly.
+   */
+  preservedArea?: number;
 }
 
 export interface SourceFidelityInput {
@@ -60,13 +69,18 @@ export function scoreSourceFidelity(input: SourceFidelityInput): FidelityScore {
         rasterArea += area;
         weighted += area * (0.9 + 0.1 * region.confidence);
         break;
-      case 'RECONSTRUCT':
-        // Redrawn from measured fill, radius and type geometry. Text inside is
-        // still the original pixels, so the exposure is the container: a fill
-        // read from a gradient, or a radius read from an anti-aliased corner.
-        reconstructedArea += area;
-        weighted += area * (0.75 + 0.25 * region.confidence);
+      case 'RECONSTRUCT': {
+        // Redrawn from measured fill, radius and type geometry. The exposure is
+        // the container itself: a fill read from a gradient, or a radius read
+        // from an anti-aliased corner. Whatever it still shows as original
+        // pixels is exact and is scored as such.
+        const preserved = Math.min(area, Math.max(0, region.preservedArea ?? 0));
+        const redrawn = area - preserved;
+        rasterArea += preserved;
+        reconstructedArea += redrawn;
+        weighted += preserved + redrawn * (0.75 + 0.25 * region.confidence);
         break;
+      }
     }
   }
 

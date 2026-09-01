@@ -1,6 +1,7 @@
 import {
   DESIGN_IR_VERSION,
   PARSER_VERSION,
+  childrenOf,
   inferred,
   measured,
   newId,
@@ -47,6 +48,8 @@ export interface ReconstructedRegion {
   classification: Classification;
   box: Box;
   confidence: number;
+  /** Area within this region still drawn from the original bitmap. */
+  preservedArea: number;
 }
 
 export interface ReconstructionResult {
@@ -271,26 +274,31 @@ export function reconstructRaster(input: ReconstructionInput): ReconstructionRes
       height: Math.round(toLogical(segment.box.height)),
     };
     const nodeId = newId('node');
-    regions.push({ nodeId, classification, box: logicalBox, confidence: classification.confidence });
 
     if (classification.renderStrategy === 'RECONSTRUCT') reconstructedArea += boxArea(segment.box);
 
-    children.push(
-      buildNode({
-        nodeId,
-        source,
-        image,
-        segment,
-        classification,
-        blocks,
-        radius: toLogical(radius),
-        gradient,
-        logicalBox,
-        frameWidth: source.width,
-        scale,
-        edgeMargin: dna.edgeMargin.value,
-      }),
-    );
+    const built = buildNode({
+      nodeId,
+      source,
+      image,
+      segment,
+      classification,
+      blocks,
+      radius: toLogical(radius),
+      gradient,
+      logicalBox,
+      frameWidth: source.width,
+      scale,
+      edgeMargin: dna.edgeMargin.value,
+    });
+    children.push(built);
+    regions.push({
+      nodeId,
+      classification,
+      box: logicalBox,
+      confidence: classification.confidence,
+      preservedArea: preservedPixelArea(built),
+    });
   }
   stages['ir'] = now() - mark;
 
@@ -346,7 +354,12 @@ export function reconstructRaster(input: ReconstructionInput): ReconstructionRes
   const sourceFidelity = scoreSourceFidelity({
     // Logical units, to match the region boxes recorded above.
     documentArea: source.width * source.height,
-    regions: regions.map((r) => ({ box: r.box, classification: r.classification, confidence: r.confidence })),
+    regions: regions.map((r) => ({
+      box: r.box,
+      classification: r.classification,
+      confidence: r.confidence,
+      preservedArea: r.preservedArea,
+    })),
     background,
     dna,
     // The analysis may have run on a downscaled copy. Reported so the score's
@@ -398,6 +411,25 @@ interface BuildNodeInput {
   frameWidth: number;
   scale: number;
   edgeMargin: number | null;
+}
+
+/**
+ * Area inside a node's subtree that is drawn from the original bitmap.
+ *
+ * Only descendants count: if the node itself is a raster, its caller already
+ * knows that and would double-count it here.
+ */
+function preservedPixelArea(node: DesignNode): number {
+  let total = 0;
+  const visit = (current: DesignNode, isRoot: boolean): void => {
+    if (!isRoot && current.type === 'image') {
+      total += Math.max(0, current.frame.width * current.frame.height);
+      return;
+    }
+    for (const child of childrenOf(current)) visit(child, false);
+  };
+  visit(node, true);
+  return total;
 }
 
 /** Normalised crop rect of a source-pixel box, for an image node. */

@@ -25,7 +25,12 @@ export function DeviceOverlay({ device, orientation, adaptation, overlay }: Prop
   const margin = plan.contentBounds.x;
 
   return (
-    <div className={styles.layer} style={{ opacity: overlay.opacity }} aria-hidden="true">
+    <div
+      className={styles.layer}
+      style={{ opacity: overlay.opacity }}
+      data-testid="device-overlay"
+      aria-hidden="true"
+    >
       {overlay.bounds && (
         <>
           <div className={styles.viewportBounds} />

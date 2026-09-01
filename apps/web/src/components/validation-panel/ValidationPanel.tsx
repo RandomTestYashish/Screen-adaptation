@@ -9,7 +9,9 @@ interface Props {
   adaptation?: AdaptationResult;
   device?: DeviceProfile;
   busy: boolean;
-  onExport(kind: 'validation-report' | 'device-metadata' | 'viewport-image' | 'full-length-image'): void;
+  onExport(
+    kind: 'validation-report' | 'device-metadata' | 'viewport-image' | 'full-length-image' | 'compare-image',
+  ): void;
 }
 
 /**
@@ -104,6 +106,8 @@ function Details({
   onExport: Props['onExport'];
 }) {
   const [tab, setTab] = useState('findings');
+  // Offered only when there is actually something to compare.
+  const paneCount = useWorkspace((state) => state.panes.length);
   const finalPass = report.passes[report.passes.length - 1]!;
   const firstPass = report.passes[0]!;
 
@@ -146,6 +150,11 @@ function Details({
           <button type="button" className={styles.exportButton} onClick={() => onExport('full-length-image')}>
             Export full length
           </button>
+          {paneCount > 1 && (
+            <button type="button" className={styles.exportButton} onClick={() => onExport('compare-image')}>
+              Export comparison
+            </button>
+          )}
           <button type="button" className={styles.exportButton} onClick={() => onExport('validation-report')}>
             Export report (JSON)
           </button>

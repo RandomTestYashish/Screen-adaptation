@@ -11,10 +11,17 @@ import { SourceSummary } from './SourceSummary.js';
 import { SourceSidebar } from './SourceSidebar.js';
 import { ExportPreview } from './ExportPreview.js';
 import { api, assetUrl, STANDALONE } from '../../lib/api.js';
-import { captureViewport } from '../../lib/capture.js';
+import { captureCompare, captureViewport } from '../../lib/capture.js';
 import styles from './Workspace.module.css';
 
 type MeasuredMap = Record<string, Record<string, { x: number; y: number; width: number; height: number }>>;
+
+type ExportKind =
+  | 'validation-report'
+  | 'device-metadata'
+  | 'viewport-image'
+  | 'full-length-image'
+  | 'compare-image';
 
 /**
  * The desktop workspace (spec section 1): previews in the centre, the device
@@ -68,27 +75,57 @@ export function Workspace() {
   }, [activePane?.deviceId, addPane, setPickingFor]);
 
   const handleExport = useCallback(
-    async (kind: 'validation-report' | 'device-metadata' | 'viewport-image' | 'full-length-image') => {
-      const plan = activePane?.render?.adaptation.plan;
+    async (kind: ExportKind) => {
+      // A compare export is about the set of panes, not the active one, so it
+      // is anchored on the first pane and names the rest in its provenance.
+      const anchor = kind === 'compare-image' ? panes[0] : activePane;
+      const plan = anchor?.render?.adaptation.plan;
       if (!plan) return;
       setExporting(true);
       setExportMessage(undefined);
       try {
         let imageDataUrl: string | undefined;
-        if (kind === 'viewport-image' || kind === 'full-length-image') {
-          imageDataUrl = await captureViewport(activePane!.id, kind === 'full-length-image');
-          if (!imageDataUrl) {
+        let captureWarnings: string[] = [];
+        let comparedPlanIds: string[] | undefined;
+
+        if (kind === 'compare-image') {
+          const ready = panes.filter((pane) => pane.render);
+          if (ready.length < 2) {
+            setExportMessage('Add a second device before exporting a comparison.');
+            return;
+          }
+          const capture = await captureCompare(
+            ready.map((pane, index) => ({
+              id: pane.id,
+              label: String.fromCharCode(65 + index),
+              deviceName: pane.render?.device.marketingName ?? pane.deviceId,
+            })),
+          );
+          if (!capture) {
+            setExportMessage('The comparison could not be captured in this browser. The JSON exports are unaffected.');
+            return;
+          }
+          imageDataUrl = capture.dataUrl;
+          captureWarnings = capture.warnings;
+          comparedPlanIds = ready.map((pane) => pane.render!.adaptation.plan.id);
+        } else if (kind === 'viewport-image' || kind === 'full-length-image') {
+          const capture = await captureViewport(anchor!.id, kind === 'full-length-image');
+          if (!capture) {
             setExportMessage(
               'The preview could not be captured in this browser. The JSON exports are unaffected.',
             );
             return;
           }
+          imageDataUrl = capture.dataUrl;
+          captureWarnings = capture.warnings;
         }
+
         const result = await api.export({
           adaptationPlanId: plan.id,
           kind,
           format: kind.endsWith('image') ? 'png' : 'json',
           ...(imageDataUrl ? { imageDataUrl } : {}),
+          ...(comparedPlanIds ? { comparedPlanIds } : {}),
         });
         const size = `${Math.round(result.byteSize / 1024)} KB`;
 
@@ -96,18 +133,23 @@ export function Workspace() {
           // The embedded preview's sandbox blocks downloads, so show the
           // artefact instead of pretending to save it.
           setExportPreview({ kind: result.kind, url: assetUrl(result.url), size });
-          setExportMessage(undefined);
+          setExportMessage(captureWarnings.length > 0 ? captureWarnings.join(' ') : undefined);
           return;
         }
         window.open(assetUrl(result.url), '_blank', 'noopener');
-        setExportMessage(`Exported ${result.kind} (${size}) with full provenance.`);
+        // Anything the canvas could not reproduce is named, not swallowed: an
+        // export the reader believes is complete when it is not is worse than
+        // no export at all.
+        setExportMessage(
+          [`Exported ${result.kind} (${size}) with full provenance.`, ...captureWarnings].join(' '),
+        );
       } catch (cause) {
         setExportMessage((cause as Error).message);
       } finally {
         setExporting(false);
       }
     },
-    [activePane],
+    [activePane, panes],
   );
 
   if (!design || !source || !screen) return null;
@@ -191,10 +233,18 @@ export function Workspace() {
           </button>
         )}
 
+        {/*
+          The canvas is the page's main landmark, so it keeps that role. Its
+          mousedown clears the pane selection - the pointer way back to the
+          neutral state - and Escape is the keyboard equivalent, so the
+          behaviour is not pointer-only.
+        */}
         <main
           className={styles.stage}
           onMouseDown={() => clearActivePane()}
-          role="presentation"
+          onKeyDown={(event) => {
+            if (event.key === 'Escape') clearActivePane();
+          }}
         >
           <div className={styles.previewRow}>
             {panes.map((pane, index) => (

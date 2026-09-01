@@ -15,7 +15,8 @@ export interface ExportRecord {
   assetId: string;
   byteSize: number;
   createdAt: string;
-  provenance: Record<string, string>;
+  /** A compare export names several devices, so values may be lists. */
+  provenance: Record<string, string | string[]>;
 }
 
 /**

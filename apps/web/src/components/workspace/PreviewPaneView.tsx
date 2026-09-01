@@ -58,6 +58,9 @@ export function PreviewPaneView({ pane, label, onMeasuredNodes }: Props) {
     <div
       className={active ? styles.paneActive : styles.pane}
       data-pane-id={pane.id}
+      // Neutral is the default and must be observable: no pane carries this
+      // attribute until someone picks one (spec sections 24 and 47).
+      {...(active ? { 'data-active': 'true' } : {})}
       onFocusCapture={() => setActivePane(pane.id)}
       onMouseDown={(event) => {
         // Selecting a pane is explicit. The canvas clears it again, so two
