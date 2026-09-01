@@ -47,6 +47,7 @@ those is a one-line change in `.env` when you want the real thing.
 ```bash
 pnpm dev:api            # API only (tsx watch)
 pnpm dev:web            # web app only (Vite)
+pnpm dev:worker         # background worker: scheduled catalog ingestion
 pnpm typecheck          # project-wide TypeScript build
 pnpm test               # unit + integration tests (Vitest)
 pnpm test:e2e           # acceptance scenario in a real browser (Playwright)
@@ -54,11 +55,14 @@ pnpm lint               # ESLint
 pnpm catalog:sync       # regenerate the device catalog from its providers
 pnpm catalog:sync -- --dry   # report what would change, write nothing
 pnpm catalog:verify     # fail if the committed catalog is stale
+pnpm build:clean        # wipe build output (including tsbuildinfo) and rebuild
 pnpm db:generate        # Prisma client (only for STORAGE_DRIVER=postgres)
 pnpm db:migrate         # apply migrations
 ```
 
-`pnpm test:e2e` expects both servers to be running. Set
+`pnpm test:e2e` covers the acceptance scenario and runs automated axe-core
+accessibility checks against the live UI. It expects both servers to be
+running. Set
 `PLAYWRIGHT_START_SERVERS=1` to have Playwright start them, and
 `PLAYWRIGHT_CHROMIUM_PATH=/path/to/chrome` if your CI image ships a Chromium
 whose build does not match the pinned Playwright version.
@@ -246,3 +250,6 @@ These are real and visible in the product, not hidden here.
   re-measured, at `medium` confidence with a caveat naming the assumption.
 - **The S3 asset driver is not implemented.** `ASSET_STORE=s3` is rejected at
   startup rather than silently falling back to local disk.
+- **The worker currently runs catalog ingestion only.** Render and validation
+  jobs go through the same `JobQueue` port and run in-process by default; the
+  BullMQ path is wired but is not the default.

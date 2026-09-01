@@ -1,16 +1,10 @@
 import { Body, Controller, Get, Inject, NotFoundException, Param, Post } from '@nestjs/common';
-import { Throttle } from '@nestjs/throttler';
 import { PlanRequest, PlanResponse, RenderListResponse, RenderRequest, RenderResponse } from '@dae/shared';
 import { parseOrThrow } from '../common/errors.js';
 import { type AdaptationService } from './adaptation.service.js';
 import { type DevicesService } from '../devices/devices.service.js';
 import { REPOSITORY, type Repository } from '../storage/repository.js';
 import { type LocalAssetStore } from '../assets/asset-store.js';
-import { loadEnv } from '../config/env.js';
-
-const EXPENSIVE = {
-  expensive: { limit: loadEnv().RATE_LIMIT_EXPENSIVE_LIMIT, ttl: loadEnv().RATE_LIMIT_TTL_SECONDS * 1000 },
-};
 
 @Controller()
 export class AdaptationsController {
@@ -22,7 +16,6 @@ export class AdaptationsController {
   ) {}
 
   @Post('adaptations/plan')
-  @Throttle(EXPENSIVE)
   async plan(@Body() body: unknown) {
     const parsed = parseOrThrow(PlanRequest, body, 'adaptation plan request');
     const result = await this.adaptations.plan(parsed);
@@ -36,7 +29,6 @@ export class AdaptationsController {
    * into an image (spec section 32).
    */
   @Post('adaptations/render')
-  @Throttle(EXPENSIVE)
   async render(@Body() body: unknown) {
     const parsed = parseOrThrow(RenderRequest, body, 'render request');
     const adaptation = await this.adaptations.plan(parsed);

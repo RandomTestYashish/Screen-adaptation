@@ -8,6 +8,9 @@ importers:
 
   .:
     devDependencies:
+      '@axe-core/playwright':
+        specifier: 4.10.1
+        version: 4.10.1(playwright-core@1.49.1)
       '@playwright/test':
         specifier: 1.49.1
         version: 1.49.1
@@ -200,6 +203,31 @@ importers:
         specifier: 6.0.7
         version: 6.0.7(@types/node@22.10.5)(tsx@4.19.2)
 
+  apps/worker:
+    dependencies:
+      '@dae/device-catalog':
+        specifier: workspace:*
+        version: link:../../packages/device-catalog
+      '@dae/engine':
+        specifier: workspace:*
+        version: link:../../packages/engine
+      '@dae/shared':
+        specifier: workspace:*
+        version: link:../../packages/shared
+      zod:
+        specifier: 3.24.1
+        version: 3.24.1
+    devDependencies:
+      '@types/node':
+        specifier: 22.10.5
+        version: 22.10.5
+      tsx:
+        specifier: 4.19.2
+        version: 4.19.2
+      typescript:
+        specifier: 5.7.3
+        version: 5.7.3
+
   packages/device-catalog:
     dependencies:
       '@dae/shared':
@@ -255,6 +283,11 @@ packages:
 
   '@asamuzakjp/css-color@3.2.0':
     resolution: {integrity: sha512-K1A6z8tS3XsmCMM86xoWdn7Fkdn9m6RSVtocUrJYIwZnFVkng/PvkEoWtOWmP+Scc6saYWHWZYbndEEXxl24jw==}
+
+  '@axe-core/playwright@4.10.1':
+    resolution: {integrity: sha512-EV5t39VV68kuAfMKqb/RL+YjYKhfuGim9rgIaQ6Vntb2HgaCaau0h98Y3WEUqW1+PbdzxDtDNjFAipbtZuBmEA==}
+    peerDependencies:
+      playwright-core: '>= 1.0.0'
 
   '@axe-core/react@4.10.1':
     resolution: {integrity: sha512-GRGx/3Gbce9WQYXgY0iZzqOaHIRXBNGyV+zoUhJzBuDeoTL+XoeY3u/9PzdIVyH0pbNs1n1RChfsmWBy6hzKPg==}
@@ -3712,6 +3745,11 @@ snapshots:
       '@csstools/css-parser-algorithms': 3.0.5(@csstools/css-tokenizer@3.0.4)
       '@csstools/css-tokenizer': 3.0.4
       lru-cache: 10.4.3
+
+  '@axe-core/playwright@4.10.1(playwright-core@1.49.1)':
+    dependencies:
+      axe-core: 4.10.3
+      playwright-core: 1.49.1
 
   '@axe-core/react@4.10.1':
     dependencies:

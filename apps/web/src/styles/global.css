@@ -11,8 +11,12 @@
   --border: #e4e4e7;
   --border-strong: #d4d4d8;
   --text: #18181b;
-  --text-muted: #71717a;
-  --text-faint: #a1a1aa;
+  /* Both muted tones are chosen to clear WCAG AA (4.5:1) against every surface
+     they are used on - #ffffff, #fafafa and #f4f4f5 - because the UI leans on
+     small text and low-contrast greys would fail exactly where the measurements
+     are read. Verified by e2e/accessibility.spec.ts. */
+  --text-muted: #5c5c66; /* 6.0:1 on the sunken background */
+  --text-faint: #68686f; /* 5.0:1 on the sunken background */
   --accent: #2563eb;
   --accent-soft: #eff6ff;
   --good: #15803d;

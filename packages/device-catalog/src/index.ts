@@ -3,6 +3,7 @@ export * from './providers/index.js';
 export * from './normalizer/index.js';
 export * from './query.js';
 export * from './load.js';
+export * from './fingerprint.js';
 
 import { appleProvider } from './providers/apple.js';
 import { androidProvider } from './providers/android.js';

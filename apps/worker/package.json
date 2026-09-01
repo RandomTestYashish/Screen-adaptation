@@ -1,0 +1,21 @@
+{
+  "name": "@dae/worker",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "./dist/main.js",
+  "scripts": {
+    "build": "tsc -b",
+    "clean": "rm -rf dist tsconfig.tsbuildinfo",
+    "dev": "tsx watch src/main.ts",
+    "start": "node dist/main.js",
+    "sync-once": "tsx src/main.ts --once"
+  },
+  "dependencies": {
+    "@dae/device-catalog": "workspace:*",
+    "@dae/engine": "workspace:*",
+    "@dae/shared": "workspace:*",
+    "zod": "3.24.1"
+  },
+  "devDependencies": { "@types/node": "22.10.5", "tsx": "4.19.2", "typescript": "5.7.3" }
+}

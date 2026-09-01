@@ -9,7 +9,7 @@
   },
   "packageManager": "pnpm@9.12.3",
   "scripts": {
-    "build": "pnpm --filter @dae/shared build && pnpm --filter @dae/device-catalog build && pnpm --filter @dae/engine build && pnpm --filter @dae/api build && pnpm --filter @dae/web build",
+    "build": "pnpm --filter @dae/shared build && pnpm --filter @dae/device-catalog build && pnpm --filter @dae/engine build && pnpm --filter @dae/api build && pnpm --filter @dae/worker build && pnpm --filter @dae/web build",
     "clean": "pnpm -r clean",
     "dev": "pnpm -r --parallel --filter @dae/api --filter @dae/web dev",
     "dev:api": "pnpm --filter @dae/api dev",
@@ -28,6 +28,7 @@
     "build:clean": "pnpm clean && pnpm build"
   },
   "devDependencies": {
+    "@axe-core/playwright": "4.10.1",
     "@playwright/test": "1.49.1",
     "@types/node": "22.10.5",
     "@typescript-eslint/eslint-plugin": "8.19.1",

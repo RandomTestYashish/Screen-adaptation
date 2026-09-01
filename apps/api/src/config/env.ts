@@ -55,11 +55,19 @@ const EnvSchema = z.object({
   RATE_LIMIT_TTL_SECONDS: z.coerce.number().int().positive().default(60),
   RATE_LIMIT_LIMIT: z.coerce.number().int().positive().default(120),
   /**
-   * Tighter budget for the expensive analyse/render/validate endpoints. Sized
-   * so ordinary interactive use - switching devices, toggling orientation,
-   * comparing several phones - never trips it; only scripted abuse does.
+   * Tighter budget for the routes that actually do image work: upload, Figma
+   * import and export. Planning, rendering and validation are cache lookups and
+   * millisecond-scale structural work, so they use the general budget - putting
+   * them here would throttle ordinary device switching.
    */
   RATE_LIMIT_EXPENSIVE_LIMIT: z.coerce.number().int().positive().default(60),
+  /**
+   * Asset reads are cheap static reads already guarded by an unguessable,
+   * expiring signature, and a single workspace with several previews issues
+   * many of them. They get their own generous budget so ordinary use never
+   * trips the general limit, while a compromised URL still cannot be hammered.
+   */
+  RATE_LIMIT_ASSET_LIMIT: z.coerce.number().int().positive().default(600),
 
   LOG_LEVEL: z.enum(['debug', 'log', 'warn', 'error']).default('log'),
   OTEL_EXPORTER_OTLP_ENDPOINT: z.string().optional(),

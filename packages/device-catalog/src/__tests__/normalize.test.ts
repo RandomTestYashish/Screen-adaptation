@@ -222,3 +222,38 @@ describe('browser emulation provider', () => {
     }
   });
 });
+
+describe('catalog fingerprinting', () => {
+  it('ignores build stamps so an unchanged rebuild is not a change', async () => {
+    const { catalogFingerprint } = await import('../fingerprint.js');
+    const a = await buildCatalog([appleProvider, androidProvider], {
+      catalogVersion: '2026.01.01.1',
+      generatedAt: '2026-01-01T00:00:00.000Z',
+    });
+    const b = await buildCatalog([appleProvider, androidProvider], {
+      catalogVersion: '2099.12.31.9',
+      generatedAt: '2099-12-31T23:59:59.000Z',
+    });
+    expect(catalogFingerprint(a.catalog)).toBe(catalogFingerprint(b.catalog));
+  });
+
+  it('detects a real data change', async () => {
+    const { catalogFingerprint, changedDevices } = await import('../fingerprint.js');
+    const base = await buildCatalog([appleProvider, androidProvider], { catalogVersion: 'a.1' });
+    const tweaked = structuredClone(base.catalog);
+    tweaked.devices[0]!.safeArea.portrait.top += 1;
+
+    expect(catalogFingerprint(base.catalog)).not.toBe(catalogFingerprint(tweaked));
+    const diff = changedDevices(base.catalog, tweaked);
+    expect(diff.updated).toEqual([tweaked.devices[0]!.id]);
+    expect(diff.added).toEqual([]);
+  });
+
+  it('reports a newly added device as added, not updated', async () => {
+    const { changedDevices } = await import('../fingerprint.js');
+    const base = await buildCatalog([appleProvider, androidProvider], { catalogVersion: 'a.1' });
+    const reduced = structuredClone(base.catalog);
+    const removed = reduced.devices.pop()!;
+    expect(changedDevices(reduced, base.catalog)).toEqual({ added: [removed.id], updated: [] });
+  });
+});

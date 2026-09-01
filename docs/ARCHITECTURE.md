@@ -49,7 +49,7 @@ apps/
     hooks/                render → validate orchestration
     lib/                  typed API client, preview capture
 
-  worker/                 Reserved for out-of-process BullMQ consumers
+  worker/                 Scheduled device-catalog ingestion; BullMQ consumers
 ```
 
 The specification's `services/` and `src/` layouts map onto this as follows:
@@ -154,8 +154,12 @@ The default configuration needs no external service, which is what makes
   is used for that request and never stored.
 - User artwork is never sent to a third party unless `AI_ALLOW_SOURCE_UPLOAD` is
   explicitly `true`, even when an API key is present.
-- Two rate-limit budgets: a general one, and a tighter one on the expensive
-  upload / render / validate / export routes.
+- Three rate-limit budgets: a general one; a tighter one on the routes that do
+  real image work (upload, Figma import, export); and a generous one for signed
+  asset reads, where the control is the signature rather than a budget.
+  Planning, rendering and validation use the general budget, because they are
+  cache lookups and millisecond-scale structural work — throttling them would
+  penalise ordinary device switching.
 - The catalog-sync endpoint is closed unless `ADMIN_API_TOKEN` is configured.
 - Errors are structured; internal details never reach the client.
 

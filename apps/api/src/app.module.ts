@@ -19,11 +19,13 @@ const env = loadEnv();
 
 @Module({
   imports: [
-    // Two budgets: a generous default, and a tighter one applied per-route to
-    // the expensive analyse/render/validate/export endpoints (spec section 27).
+    // Three budgets: a general default, a tighter one applied per-route to the
+    // expensive analyse/render/validate/export endpoints, and a generous one
+    // for signed asset reads (spec section 27).
     ThrottlerModule.forRoot([
       { name: 'default', ttl: env.RATE_LIMIT_TTL_SECONDS * 1000, limit: env.RATE_LIMIT_LIMIT },
       { name: 'expensive', ttl: env.RATE_LIMIT_TTL_SECONDS * 1000, limit: env.RATE_LIMIT_EXPENSIVE_LIMIT },
+      { name: 'assets', ttl: env.RATE_LIMIT_TTL_SECONDS * 1000, limit: env.RATE_LIMIT_ASSET_LIMIT },
     ]),
     LoggingModule,
     StorageModule,

@@ -1,5 +1,14 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
-import { buildCatalog, buildResponse, defaultProviders, loadCatalog, pickDefaultDevice, setCatalog } from '@dae/device-catalog';
+import {
+  buildCatalog,
+  buildResponse,
+  catalogFingerprint,
+  changedDevices,
+  defaultProviders,
+  loadCatalog,
+  pickDefaultDevice,
+  setCatalog,
+} from '@dae/device-catalog';
 import type { DeviceCatalog, DeviceListResponseT, DeviceProfile, DeviceQueryT } from '@dae/shared';
 
 /**
@@ -32,7 +41,6 @@ export class DevicesService {
   }
 
   async sync(options: { dryRun: boolean }) {
-    const previous = new Set(this.catalog.devices.map((d) => d.id));
     const stamp = new Date().toISOString().slice(0, 10).replace(/-/g, '.');
     const revision = this.catalog.catalogVersion.startsWith(stamp)
       ? Number(this.catalog.catalogVersion.split('.').pop() ?? '0') + 1
@@ -42,23 +50,22 @@ export class DevicesService {
       catalogVersion: `${stamp}.${revision}`,
     });
 
-    const added = catalog.devices.map((d) => d.id).filter((id) => !previous.has(id));
-    const updated = catalog.devices
-      .filter((d) => previous.has(d.id))
-      .filter((d) => {
-        const before = this.catalog.devices.find((p) => p.id === d.id);
-        return before && JSON.stringify({ ...before, catalogVersion: '', lastUpdated: '' }) !== JSON.stringify({ ...d, catalogVersion: '', lastUpdated: '' });
-      })
-      .map((d) => d.id);
+    const { added, updated } = changedDevices(this.catalog, catalog);
+    // Build stamps change on every run; only a real data change should bump the
+    // catalog version, because that version is part of every adaptation cache
+    // key (spec section 24).
+    const changed = catalogFingerprint(this.catalog) !== catalogFingerprint(catalog);
 
-    if (!options.dryRun) {
+    if (changed && !options.dryRun) {
       this.catalog = catalog;
       setCatalog(catalog);
       this.logger.log(`Device catalog synced to ${catalog.catalogVersion} (${catalog.devices.length} devices)`);
+    } else if (!changed) {
+      this.logger.log(`Device catalog unchanged; kept version ${this.catalog.catalogVersion}`);
     }
 
     return {
-      catalogVersion: catalog.catalogVersion,
+      catalogVersion: this.catalog.catalogVersion,
       added,
       updated,
       unchanged: catalog.devices.length - added.length - updated.length,

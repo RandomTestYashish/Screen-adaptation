@@ -1,4 +1,6 @@
 import { Controller, Get, Header, HttpException, HttpStatus, Param, Query, Res } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
+import { loadEnv } from '../config/env.js';
 import type { Response } from 'express';
 import { type LocalAssetStore } from './asset-store.js';
 
@@ -11,6 +13,9 @@ export class AssetsController {
   constructor(private readonly store: LocalAssetStore) {}
 
   @Get(':id')
+  // Access control here is the signature, not a budget: a workspace comparing
+  // several devices legitimately issues many asset reads.
+  @Throttle({ assets: { limit: loadEnv().RATE_LIMIT_ASSET_LIMIT, ttl: loadEnv().RATE_LIMIT_TTL_SECONDS * 1000 } })
   @Header('Cache-Control', 'private, max-age=300')
   @Header('X-Content-Type-Options', 'nosniff')
   // The web app draws these into a canvas to produce image exports, which
