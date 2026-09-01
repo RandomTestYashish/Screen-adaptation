@@ -2,7 +2,7 @@ import { Body, Controller, Get, Param, Post, Query, UseGuards } from '@nestjs/co
 import { CatalogSyncRequest, CatalogSyncResponse, DeviceListResponse, DeviceProfileSchema, DeviceQuery } from '@dae/shared';
 import { parseOrThrow } from '../common/errors.js';
 import { AdminGuard } from '../common/admin.guard.js';
-import { DevicesService } from './devices.service.js';
+import { type DevicesService } from './devices.service.js';
 
 @Controller()
 export class DevicesController {

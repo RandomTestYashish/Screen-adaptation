@@ -132,6 +132,9 @@ function NodeView({ node, byId, assetUrl, devMode, selectedNodeId, onSelect, vis
           <img
             src={url}
             alt={node.altText ?? node.name}
+            // Required for image export: without it the browser taints the
+            // canvas and the capture silently fails.
+            crossOrigin="anonymous"
             className={styles.image}
             style={{
               objectFit: node.scaleMode === 'fit' ? 'contain' : node.scaleMode === 'stretch' ? 'fill' : 'cover',

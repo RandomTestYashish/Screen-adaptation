@@ -124,6 +124,41 @@ test.describe('acceptance scenario', () => {
     });
     expect(geometryAfter).toEqual(geometryBefore);
   });
+
+  test('exports carry provenance and contain only the design', async ({ page, context }) => {
+    await page.goto('/');
+    await page.setInputFiles('input[type="file"]', FIXTURE);
+    await expect(page.getByText('Source preserved')).toBeVisible({ timeout: 30_000 });
+
+    const panel = page.getByRole('region', { name: 'Validation summary' });
+    await expect(panel.getByText(/Passed|Failed/)).toBeVisible({ timeout: 30_000 });
+    await panel.getByRole('button', { name: /iPhone|Pixel/ }).click();
+
+    // 17. Export produces the selected render and a validation report.
+    const opened: string[] = [];
+    context.on('page', (popup) => {
+      opened.push(popup.url());
+      void popup.close();
+    });
+
+    for (const label of ['Export viewport', 'Export full length', 'Export report (JSON)', 'Export device data']) {
+      await panel.getByRole('button', { name: label }).click();
+      await expect(page.locator('p[role="status"]').last()).toContainText('with full provenance', {
+        timeout: 20_000,
+      });
+    }
+
+    // Every export is served through a signed, expiring URL.
+    expect(opened).toHaveLength(4);
+    for (const url of opened) {
+      expect(url).toMatch(/\/assets\/[A-Za-z0-9_-]+\?expires=\d+&signature=[a-f0-9]+$/);
+    }
+
+    // An unsigned request for the same asset is refused.
+    const assetPath = new URL(opened[0]!).pathname;
+    const unsigned = await page.request.get(`http://localhost:4000${assetPath}`);
+    expect(unsigned.status()).toBe(403);
+  });
 });
 
 async function selectDevice(page: Page, name: string): Promise<void> {

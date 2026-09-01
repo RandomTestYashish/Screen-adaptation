@@ -13,7 +13,7 @@ import {
 } from '@dae/shared';
 import { buildFigmaDesign, buildRasterDesign, detectAnchors, type FigmaNode } from '@dae/engine';
 import { REPOSITORY, type Repository } from '../storage/repository.js';
-import { LocalAssetStore } from '../assets/asset-store.js';
+import { type LocalAssetStore } from '../assets/asset-store.js';
 import { AI_ADAPTER, type AIAdapter } from '../ai/ai-adapter.js';
 import { loadEnv } from '../config/env.js';
 

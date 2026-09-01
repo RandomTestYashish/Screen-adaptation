@@ -1,0 +1,9 @@
+dist/
+node_modules/
+coverage/
+.data/
+.storage/
+packages/device-catalog/data/catalog.json
+pnpm-lock.yaml
+playwright-report/
+test-results/

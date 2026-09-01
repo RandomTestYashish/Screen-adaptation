@@ -12,8 +12,8 @@ import { Throttle } from '@nestjs/throttler';
 import { CreateProjectRequest, CreateProjectResponse, FigmaImportRequest, FigmaImportResponse, UploadSourceResponse, newId, primaryScreen } from '@dae/shared';
 import { parseOrThrow } from '../common/errors.js';
 import { REPOSITORY, type Repository } from '../storage/repository.js';
-import { DevicesService } from '../devices/devices.service.js';
-import { ImportService } from './import.service.js';
+import { type DevicesService } from '../devices/devices.service.js';
+import { type ImportService } from './import.service.js';
 import { loadEnv } from '../config/env.js';
 
 @Controller()

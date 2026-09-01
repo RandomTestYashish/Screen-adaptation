@@ -3,7 +3,7 @@ import pixelmatch from 'pixelmatch';
 import { PNG } from 'pngjs';
 import sharp from 'sharp';
 import type { VisualComparator, VisualComparison, ValidationContext } from '@dae/engine';
-import { LocalAssetStore } from '../assets/asset-store.js';
+import { type LocalAssetStore } from '../assets/asset-store.js';
 
 /**
  * Source-vs-target pixel comparison, built on pixelmatch.

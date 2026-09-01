@@ -2,11 +2,11 @@ import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { runValidation } from '@dae/engine';
 import type { AdaptationResult, RenderEvidence, ValidationReport } from '@dae/shared';
 import { REPOSITORY, type Repository } from '../storage/repository.js';
-import { DevicesService } from '../devices/devices.service.js';
-import { AdaptationService } from '../adaptations/adaptation.service.js';
-import { LocalAssetStore } from '../assets/asset-store.js';
-import { PixelComparator } from './pixel-comparator.js';
-import { StructuredLogger } from '../common/logger.js';
+import { type DevicesService } from '../devices/devices.service.js';
+import { type AdaptationService } from '../adaptations/adaptation.service.js';
+import { type LocalAssetStore } from '../assets/asset-store.js';
+import { type PixelComparator } from './pixel-comparator.js';
+import { type StructuredLogger } from '../common/logger.js';
 
 @Injectable()
 export class ValidationService {

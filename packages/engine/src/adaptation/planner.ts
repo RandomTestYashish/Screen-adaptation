@@ -1,9 +1,8 @@
 import {
   ADAPTATION_ENGINE_VERSION,
   AdaptationOptionsSchema,
-  adaptationCacheKey,
+  type adaptationCacheKey,
   childrenOf,
-  isParent,
   newId,
   safeAreaFor,
   viewportFor,

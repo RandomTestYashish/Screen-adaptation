@@ -1,5 +1,5 @@
 import type { Color, DesignNode, ValidationFinding } from '@dae/shared';
-import { effectiveFrame, finding, irNode, measurement, px, type ValidationContext } from '../context.js';
+import { finding, irNode, measurement, px, type ValidationContext } from '../context.js';
 import { round } from '../../layout/geometry.js';
 import type { CheckOutput } from './geometry.js';
 

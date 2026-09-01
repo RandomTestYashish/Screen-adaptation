@@ -2,7 +2,7 @@ import { Body, Controller, Get, Param, Post } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 import { ValidationReportSchema, ValidationRunRequest, ValidationRunResponse } from '@dae/shared';
 import { parseOrThrow } from '../common/errors.js';
-import { ValidationService } from './validation.service.js';
+import { type ValidationService } from './validation.service.js';
 import { loadEnv } from '../config/env.js';
 
 @Controller('validations')

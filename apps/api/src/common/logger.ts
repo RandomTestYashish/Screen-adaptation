@@ -1,4 +1,4 @@
-import { Injectable, LoggerService } from '@nestjs/common';
+import { Injectable, type LoggerService } from '@nestjs/common';
 import { loadEnv } from '../config/env.js';
 
 const LEVELS = { debug: 10, log: 20, warn: 30, error: 40 } as const;

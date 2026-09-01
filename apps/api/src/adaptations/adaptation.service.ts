@@ -10,8 +10,8 @@ import {
 } from '@dae/shared';
 import { planAdaptation } from '@dae/engine';
 import { REPOSITORY, type Repository } from '../storage/repository.js';
-import { DevicesService } from '../devices/devices.service.js';
-import { StructuredLogger } from '../common/logger.js';
+import { type DevicesService } from '../devices/devices.service.js';
+import { type StructuredLogger } from '../common/logger.js';
 
 @Injectable()
 export class AdaptationService {

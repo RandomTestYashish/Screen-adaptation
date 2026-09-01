@@ -70,8 +70,11 @@ export type Env = z.infer<typeof EnvSchema>;
 
 let cached: Env | undefined;
 
-export function loadEnv(source: NodeJS.ProcessEnv = process.env): Env {
-  if (cached) return cached;
+/**
+ * Validate an arbitrary environment. Never cached, so callers (and tests) can
+ * check a candidate configuration without affecting the process-wide one.
+ */
+export function parseEnv(source: NodeJS.ProcessEnv): Env {
   const parsed = EnvSchema.safeParse(source);
   if (!parsed.success) {
     const details = parsed.error.issues.map((i) => `  ${i.path.join('.')}: ${i.message}`).join('\n');
@@ -95,8 +98,13 @@ export function loadEnv(source: NodeJS.ProcessEnv = process.env): Env {
     throw new Error('ASSET_URL_SECRET must be set to a real secret in production');
   }
 
-  cached = env;
   return env;
+}
+
+/** The process-wide configuration, validated once at first use. */
+export function loadEnv(): Env {
+  cached ??= parseEnv(process.env);
+  return cached;
 }
 
 export const ENV = 'ENV';

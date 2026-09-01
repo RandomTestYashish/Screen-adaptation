@@ -16,7 +16,7 @@
     "build": "tsc -b && node ./scripts/copy-data.mjs",
     "sync": "tsx ./scripts/sync.ts",
     "verify": "tsx ./scripts/verify.ts",
-    "clean": "rm -rf dist"
+    "clean": "rm -rf dist tsconfig.tsbuildinfo"
   },
   "dependencies": {
     "@dae/shared": "workspace:*",

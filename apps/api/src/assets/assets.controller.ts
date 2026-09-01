@@ -1,6 +1,6 @@
 import { Controller, Get, Header, HttpException, HttpStatus, Param, Query, Res } from '@nestjs/common';
 import type { Response } from 'express';
-import { LocalAssetStore } from './asset-store.js';
+import { type LocalAssetStore } from './asset-store.js';
 
 /**
  * Serves stored assets only when the request carries a valid, unexpired
@@ -13,6 +13,10 @@ export class AssetsController {
   @Get(':id')
   @Header('Cache-Control', 'private, max-age=300')
   @Header('X-Content-Type-Options', 'nosniff')
+  // The web app draws these into a canvas to produce image exports, which
+  // requires a CORS-clean response.
+  @Header('Access-Control-Allow-Origin', '*')
+  @Header('Timing-Allow-Origin', '*')
   async serve(
     @Param('id') id: string,
     @Query('expires') expires: string,
