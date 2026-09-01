@@ -50,6 +50,12 @@ export class AdaptationsController {
       ...(parsed.includeDesign ? { design } : {}),
       source,
       sourceAssetUrl: this.assets.signedUrl(source.assetId),
+      assetUrls: Object.fromEntries(
+        [...new Set([source.assetId, ...design.assetsUsed])].map((assetId) => [
+          assetId,
+          this.assets.signedUrl(assetId),
+        ]),
+      ),
     });
   }
 

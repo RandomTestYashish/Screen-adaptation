@@ -1,0 +1,234 @@
+.workspace {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+
+.topBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 10px 16px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  flex: 0 0 auto;
+}
+
+.sourceSummary {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  min-width: 0;
+}
+
+.sourceName {
+  font-size: 14px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 340px;
+}
+
+.sourceMeta {
+  display: flex;
+  gap: 12px;
+  margin: 2px 0 0;
+  font: 400 10.5px/1.5 var(--font-mono);
+  color: var(--text-muted);
+  flex-wrap: wrap;
+}
+
+.preserved {
+  color: var(--good);
+  font-weight: 500;
+  cursor: help;
+}
+
+.qualityTag {
+  margin-left: 4px;
+  padding: 0 3px;
+  border-radius: 2px;
+  background: var(--bg-sunken);
+  color: var(--text-faint);
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.topControls {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  flex: 0 0 auto;
+}
+
+.zoomControl {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.zoomControl input {
+  width: 110px;
+}
+
+.zoomControl output {
+  font: 400 11px/1 var(--font-mono);
+  min-width: 34px;
+}
+
+.checkboxControl,
+.devToggle,
+.devToggleActive {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--text-muted);
+  cursor: pointer;
+  user-select: none;
+}
+
+/* Dev Mode is deliberately quiet until it is switched on. */
+.devToggle {
+  padding: 3px 8px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+}
+
+.devToggleActive {
+  padding: 3px 8px;
+  border: 1px solid var(--accent);
+  border-radius: var(--radius-sm);
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-weight: 500;
+}
+
+.link {
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--accent);
+  font-size: 12px;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.body {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+}
+
+.stage {
+  flex: 1;
+  min-width: 0;
+  overflow: auto;
+  padding: 28px 24px 20px;
+  background: var(--bg-sunken);
+}
+
+.previewRow {
+  display: flex;
+  align-items: flex-start;
+  gap: 28px;
+  min-height: min-content;
+}
+
+.pane,
+.paneActive {
+  padding: 10px;
+  border-radius: var(--radius);
+  border: 1px solid transparent;
+  flex: 0 0 auto;
+}
+
+.paneActive {
+  border-color: var(--border-strong);
+  background: var(--surface);
+}
+
+.paneLoading,
+.paneError {
+  min-width: 240px;
+  min-height: 400px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--radius);
+  color: var(--text-muted);
+  text-align: center;
+  padding: 16px;
+}
+
+.paneErrorDetail {
+  font: 400 11px/1.5 var(--font-mono);
+  color: var(--bad);
+  max-width: 260px;
+}
+
+.addPane {
+  flex: 0 0 auto;
+  align-self: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 28px 22px;
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--radius);
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.addPane:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.addPaneIcon {
+  font-size: 22px;
+  line-height: 1;
+}
+
+.compareNote {
+  margin: 20px 0 0;
+  font-size: 11.5px;
+  color: var(--text-faint);
+}
+
+.rightRail {
+  flex: 0 0 336px;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  /* Without this the explorer's list and the controls panel can overlap when
+     the rail runs out of vertical room. */
+  overflow: hidden;
+  border-left: 1px solid var(--border);
+  background: var(--surface);
+}
+
+.inspectorRail {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+
+.exportMessage {
+  margin: 0;
+  padding: 6px 16px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-size: 12px;
+  flex: 0 0 auto;
+}

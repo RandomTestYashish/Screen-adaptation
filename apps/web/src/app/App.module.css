@@ -1,0 +1,44 @@
+.app {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: var(--bg-sunken);
+}
+
+.offline {
+  max-width: 480px;
+  margin: 15vh auto;
+  padding: 24px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  text-align: center;
+}
+
+.offline h1 {
+  font-size: 16px;
+  margin-bottom: 8px;
+}
+
+.offline p {
+  color: var(--text-muted);
+  margin: 0;
+}
+
+.statusStrip {
+  display: flex;
+  gap: 18px;
+  padding: 4px 14px;
+  border-top: 1px solid var(--border);
+  background: var(--bg-subtle);
+  font: 400 10.5px/1.6 var(--font-mono);
+  color: var(--text-faint);
+  flex: 0 0 auto;
+  overflow-x: auto;
+  white-space: nowrap;
+}
+
+.statusNote {
+  color: var(--warn);
+  cursor: help;
+}

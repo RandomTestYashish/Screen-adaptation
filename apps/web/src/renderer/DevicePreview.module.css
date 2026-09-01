@@ -1,0 +1,45 @@
+.stage {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  flex: 0 0 auto;
+}
+
+.zoom {
+  transform-origin: top center;
+  /* The zoom wrapper collapses to the scaled size so panes sit side by side
+     without the unscaled box reserving extra space. */
+  height: fit-content;
+}
+
+.designViewport {
+  position: relative;
+  overflow-y: auto;
+  overflow-x: hidden;
+  z-index: 10;
+  /* Momentum scrolling matches how the page behaves on a real device. */
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+}
+
+.designViewport:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+.caption {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  margin: 0;
+  text-align: center;
+  font-size: 12px;
+  color: var(--text);
+}
+
+.captionMeta {
+  font: 400 10.5px/1.4 var(--font-mono);
+  color: var(--text-muted);
+}

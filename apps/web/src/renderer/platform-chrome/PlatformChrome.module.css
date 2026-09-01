@@ -1,0 +1,113 @@
+/* The chrome layer sits above the design and never receives pointer events, so
+   it cannot interfere with Dev Mode selection in the layer beneath. */
+.layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 30;
+}
+
+.statusBar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: flex-end;
+  padding-bottom: 2px;
+  font-size: 14px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.iosStatus {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 22px 4px;
+  width: 100%;
+}
+
+.iosTime { letter-spacing: 0.2px; }
+.spacer { flex: 1; }
+
+.iosIcons {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.androidStatus {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 0 14px 3px;
+  font-size: 13px;
+}
+
+.cutout {
+  position: absolute;
+  background: #000000;
+  z-index: 2;
+}
+
+.homeIndicatorArea {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.homeIndicator {
+  height: 5px;
+  border-radius: 3px;
+  opacity: 0.85;
+}
+
+.androidNav {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.gesturePill {
+  height: 4px;
+  border-radius: 2px;
+  opacity: 0.85;
+}
+
+.threeButton {
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  width: 60%;
+  font-size: 11px;
+  opacity: 0.8;
+}
+
+.keyboard {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(210, 213, 219, 0.96);
+  border-top: 1px solid rgba(0, 0, 0, 0.12);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1;
+}
+
+.keyboardLabel {
+  font-size: 11px;
+  color: #3c3c43;
+  font-family: var(--font-mono);
+}

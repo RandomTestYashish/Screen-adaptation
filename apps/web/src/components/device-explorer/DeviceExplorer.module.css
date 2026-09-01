@@ -1,0 +1,367 @@
+.panel {
+  flex: 1 1 auto;
+  min-height: 200px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.header {
+  flex: 0 0 auto;
+  padding: 12px 14px 8px;
+  border-bottom: 1px solid var(--border);
+}
+
+.heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  font-size: 12.5px;
+}
+
+.count {
+  font: 400 10.5px/1 var(--font-mono);
+  color: var(--text-faint);
+}
+
+.pickingHint {
+  margin: 4px 0 0;
+  font-size: 11px;
+  color: var(--accent);
+}
+
+.filters {
+  flex: 0 0 auto;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+
+.search {
+  font-size: 12px;
+}
+
+.segmented {
+  display: flex;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+
+.segment,
+.segmentActive {
+  flex: 1;
+  padding: 4px 8px;
+  border: none;
+  background: var(--surface);
+  font-size: 11.5px;
+}
+
+.segment + .segment,
+.segment + .segmentActive,
+.segmentActive + .segment {
+  border-left: 1px solid var(--border);
+}
+
+.segmentActive {
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-weight: 500;
+}
+
+.filterRow {
+  display: flex;
+  gap: 8px;
+}
+
+.selectField {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  font-size: 10.5px;
+  color: var(--text-muted);
+  min-width: 0;
+}
+
+.selectField select {
+  font-size: 11.5px;
+  padding: 4px 6px;
+}
+
+.rangeRow {
+  display: flex;
+  gap: 8px;
+}
+
+.rangeGroup {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.rangeGroup legend {
+  font-size: 10.5px;
+  color: var(--text-muted);
+  padding: 0;
+  margin-bottom: 3px;
+}
+
+.rangeGroup input {
+  font-size: 11.5px;
+  padding: 4px 6px;
+}
+
+.clear {
+  align-self: flex-start;
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--accent);
+  font-size: 11px;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.quickSection {
+  flex: 0 0 auto;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border);
+}
+
+.sectionTitle {
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-faint);
+  margin-bottom: 6px;
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.chip {
+  padding: 3px 8px;
+  border: 1px solid var(--border-strong);
+  border-radius: 12px;
+  background: var(--surface);
+  font-size: 11px;
+}
+
+.chip:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.list {
+  flex: 1 1 auto;
+  /* Always leave room for a few rows, even when the filters are tall. */
+  min-height: 120px;
+  overflow-y: auto;
+}
+
+.row,
+.rowSelected {
+  display: flex;
+  align-items: flex-start;
+  border-bottom: 1px solid var(--border);
+}
+
+.rowSelected {
+  background: var(--accent-soft);
+}
+
+.rowMain {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 6px 8px 14px;
+  border: none;
+  background: none;
+  text-align: left;
+}
+
+.rowMain:hover {
+  background: var(--bg-subtle);
+}
+
+.rowName {
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.rowMeta {
+  font: 400 10px/1.5 var(--font-mono);
+  color: var(--text-muted);
+}
+
+.confidenceBadge {
+  margin-left: 6px;
+  padding: 0 4px;
+  border-radius: 2px;
+  background: #fef3c7;
+  color: var(--warn);
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.rowActions {
+  display: flex;
+  flex-direction: column;
+  padding: 6px 8px 6px 0;
+  gap: 2px;
+}
+
+.iconButton {
+  border: none;
+  background: none;
+  padding: 2px 4px;
+  color: var(--text-faint);
+  font-size: 12px;
+  line-height: 1;
+}
+
+.iconButton:hover {
+  color: var(--accent);
+}
+
+.state {
+  padding: 16px 14px;
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.dialogOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.35);
+}
+
+.dialog {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: min(620px, 92vw);
+  max-height: 84vh;
+  overflow-y: auto;
+  padding: 20px 22px;
+  background: var(--surface);
+  border-radius: var(--radius);
+  box-shadow: 0 20px 50px -12px rgba(0, 0, 0, 0.3);
+}
+
+.dialogTitle {
+  font-size: 16px;
+}
+
+.dialogDescription {
+  margin: 4px 0 16px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.detailGrid {
+  margin: 0 0 18px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0 20px;
+}
+
+.detailRow {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 3px 0;
+  border-bottom: 1px solid var(--border);
+  font: 400 11px/1.6 var(--font-mono);
+}
+
+.detailRow dt {
+  color: var(--text-muted);
+}
+
+.detailRow dd {
+  margin: 0;
+  text-align: right;
+}
+
+.detailHeading {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-faint);
+  margin: 16px 0 8px;
+}
+
+.attributionList,
+.caveatList {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.attributionList li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px;
+  font-size: 11px;
+  padding-bottom: 4px;
+  border-bottom: 1px solid var(--border);
+}
+
+.attributionList code {
+  font-size: 10.5px;
+  color: var(--text);
+}
+
+.attributionSource {
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: 10px;
+}
+
+.attributionNote {
+  flex-basis: 100%;
+  color: var(--text-faint);
+  font-size: 10.5px;
+  line-height: 1.5;
+}
+
+.caveatList li {
+  font-size: 11.5px;
+  color: var(--text-muted);
+  line-height: 1.55;
+  padding-left: 12px;
+  position: relative;
+}
+
+.caveatList li::before {
+  content: '·';
+  position: absolute;
+  left: 2px;
+}
+
+.dialogClose {
+  margin-top: 18px;
+  padding: 6px 14px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  font-size: 12px;
+}

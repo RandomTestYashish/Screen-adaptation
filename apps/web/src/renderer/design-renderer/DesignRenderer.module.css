@@ -1,0 +1,47 @@
+.document {
+  position: relative;
+  transform-origin: top left;
+}
+
+.node {
+  /* Nodes are positioned absolutely from the adaptation plan; no CSS layout
+     rule may move them, or the preview would stop matching the plan. */
+  contain: layout style;
+}
+
+.selectable {
+  cursor: crosshair;
+}
+
+.selectable:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.selected {
+  box-shadow: inset 0 0 0 1.5px var(--accent) !important;
+}
+
+.image {
+  width: 100%;
+  height: 100%;
+  display: block;
+  user-select: none;
+}
+
+.vector {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.fixedLayer {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  pointer-events: none;
+}
+
+.fixedLayer > * {
+  pointer-events: auto;
+}

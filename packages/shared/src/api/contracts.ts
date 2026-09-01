@@ -98,6 +98,11 @@ export const RenderResponse = z.object({
   source: SourceDocumentSchema,
   /** Signed, time-limited URL for the immutable source asset. */
   sourceAssetUrl: z.string(),
+  /**
+   * Signed URL for every asset the design references, keyed by asset id, so the
+   * client renderer never has to construct an asset URL itself.
+   */
+  assetUrls: z.record(z.string(), z.string()),
 });
 export type RenderResponseT = z.infer<typeof RenderResponse>;
 

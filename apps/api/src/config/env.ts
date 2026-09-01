@@ -54,8 +54,12 @@ const EnvSchema = z.object({
 
   RATE_LIMIT_TTL_SECONDS: z.coerce.number().int().positive().default(60),
   RATE_LIMIT_LIMIT: z.coerce.number().int().positive().default(120),
-  /** Tighter budget for the expensive analyse/render/validate endpoints. */
-  RATE_LIMIT_EXPENSIVE_LIMIT: z.coerce.number().int().positive().default(20),
+  /**
+   * Tighter budget for the expensive analyse/render/validate endpoints. Sized
+   * so ordinary interactive use - switching devices, toggling orientation,
+   * comparing several phones - never trips it; only scripted abuse does.
+   */
+  RATE_LIMIT_EXPENSIVE_LIMIT: z.coerce.number().int().positive().default(60),
 
   LOG_LEVEL: z.enum(['debug', 'log', 'warn', 'error']).default('log'),
   OTEL_EXPORTER_OTLP_ENDPOINT: z.string().optional(),

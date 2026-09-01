@@ -1,0 +1,142 @@
+.safeAreaLayer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 25;
+}
+
+.inheritedBand,
+.newBand {
+  position: absolute;
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding-right: 6px;
+}
+
+.inheritedBand {
+  background: repeating-linear-gradient(
+    45deg,
+    rgba(100, 116, 139, 0.16),
+    rgba(100, 116, 139, 0.16) 5px,
+    transparent 5px,
+    transparent 10px
+  );
+  border-bottom: 1px dashed rgba(100, 116, 139, 0.5);
+}
+
+.newBand {
+  background: repeating-linear-gradient(
+    45deg,
+    rgba(217, 119, 6, 0.22),
+    rgba(217, 119, 6, 0.22) 5px,
+    transparent 5px,
+    transparent 10px
+  );
+  border-bottom: 1px dashed rgba(180, 83, 9, 0.7);
+}
+
+.bandLabel {
+  font: 500 9px/1 var(--font-mono);
+  color: #1f2937;
+  background: rgba(255, 255, 255, 0.85);
+  padding: 2px 4px;
+  border-radius: 2px;
+  white-space: nowrap;
+}
+
+.safeRect {
+  position: absolute;
+  border: 1px dashed rgba(37, 99, 235, 0.75);
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-start;
+}
+
+.safeRectLabel {
+  font: 500 9px/1 var(--font-mono);
+  color: #1d4ed8;
+  background: rgba(255, 255, 255, 0.9);
+  padding: 2px 4px;
+  margin: 2px;
+  border-radius: 2px;
+}
+
+.inspectionLayer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 28;
+}
+
+.selectionBox {
+  position: absolute;
+  outline: 1px solid var(--accent);
+  background: rgba(37, 99, 235, 0.06);
+}
+
+.selectionLabel {
+  position: absolute;
+  bottom: 100%;
+  left: 0;
+  transform: translateY(-2px);
+  font: 500 9px/1.4 var(--font-mono);
+  color: #ffffff;
+  background: var(--accent);
+  padding: 2px 4px;
+  border-radius: 2px;
+  white-space: nowrap;
+}
+
+.measureBox {
+  position: absolute;
+  outline: 1px dashed rgba(37, 99, 235, 0.6);
+}
+
+.paddingBand {
+  position: absolute;
+  outline: 1px dashed rgba(16, 185, 129, 0.8);
+  background: rgba(16, 185, 129, 0.08);
+}
+
+.guide {
+  position: absolute;
+  background: #db2777;
+}
+
+.guideLabelH,
+.guideLabelV {
+  position: absolute;
+  font: 500 9px/1 var(--font-mono);
+  color: #ffffff;
+  background: #db2777;
+  padding: 2px 3px;
+  border-radius: 2px;
+  white-space: nowrap;
+}
+
+.guideLabelH {
+  left: 50%;
+  top: 0;
+  transform: translate(-50%, -130%);
+}
+
+.guideLabelV {
+  top: 50%;
+  left: 0;
+  transform: translate(-50%, -50%);
+}
+
+.criticalRegion {
+  position: absolute;
+  outline: 1.5px solid #dc2626;
+  background: rgba(220, 38, 38, 0.1);
+}
+
+.warningRegion {
+  position: absolute;
+  outline: 1.5px solid #d97706;
+  background: rgba(217, 119, 6, 0.08);
+}
